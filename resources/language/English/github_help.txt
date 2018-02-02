@@ -1,0 +1,5 @@
+Welcome to our new GitHub Browser for Kodi. Using this tool, you'll be able to install any Kodi addon that is developed or distributed through GitHub. GitHub is the world's leading software development platform, home to millions of teams including Airbnb, IBM, NASA, Walmart and Bloomberg.
+
+Please use the Search by GitHub Username method for best results! Using the other search methods might not ensure you get the correct version, as there are many forks of popular addons, with different versions and the same names being distributed all over the place.
+
+Need Support? Please visit www.tvaddons.co anytime!

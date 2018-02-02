@@ -1,0 +1,19 @@
+<?xml version='1.0' encoding='utf-8'?>
+<addon author="tvaddons" id="plugin.git.browser" name="Git Browser" version="1.0.0">
+	<requires>
+		<import addon="xbmc.python" version="2.1.0" />
+	</requires>
+	<extension library="service.py" point="xbmc.service" start="startup" />
+    <extension library="addon.py" point="xbmc.python.pluginsource">
+        <provides>executable</provides>
+    </extension>
+    <extension point="xbmc.addon.metadata">
+        <summary lang="en">Easily Install Kodi Addons Directly from GitHub</summary>
+        <description lang="en">Git Browser is the new and improved way to install Kodi addons. Download any Kodi addon, from any developer, in a matter of seconds!</description>
+        <disclaimer lang="en">Kodi is a registered trademark of the XBMC Foundation. We are not connected to or in any other way affiliated with Kodi, Team Kodi, or the XBMC Foundation. Furthermore, any software, addons, or products offered by us will receive no support in official Kodi channels, including the Kodi forums and various social networks.</disclaimer>
+        <language>en</language>
+        <platform>all</platform>
+        <forum>https://www.tvaddons.co/forums</forum>
+        <website>https://www.tvaddons.co</website>
+    </extension>
+</addon>

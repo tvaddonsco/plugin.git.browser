@@ -1,0 +1,55 @@
+# Addon Name: TVAddons Log Uploader for Kodi
+# Addon id: plugin.program.indigo
+# Addon Provider: TVAddons
+msgid ""
+msgstr ""
+"Project-Id-Version: TV Addons Addons\n"
+"POT-Creation-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Language-Team: English\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Language: en\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+msgctxt "#30000"
+msgid "Logs Uploaded"
+msgstr ""
+
+msgctxt "#30001"
+msgid "Log Upload Failed: %s"
+msgstr ""
+
+msgctxt "#30002"
+msgid "Do you want to upload your logs?"
+msgstr ""
+
+msgctxt "#30003"
+msgid "Email Successful"
+msgstr ""
+
+msgctxt "#30004"
+msgid "Email Failed"
+msgstr ""
+
+msgctxt "#30005"
+msgid "Email Not Supported"
+msgstr ""
+
+msgctxt "#30006"
+msgid "Email Not Configured"
+msgstr ""
+
+msgctxt "#30007"
+msgid "*WARNING* Debug Logs may contain sensitive information!"
+msgstr ""
+
+msgctxt "#30500"
+msgid "Destination Email Address"
+msgstr ""
+
+msgctxt "#30501"
+msgid "Include Old Kodi Log"
+msgstr ""
+

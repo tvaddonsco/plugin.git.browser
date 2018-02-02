@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<settings>
+	<category label="Git Installer">
+		<setting label="Git Installer" type="text" enable="false"></setting>
+		<setting label="Install Kodi Addons directly from GitHub" type="text" enable="false"></setting>
+		<setting type="sep"></setting>
+		<setting label="For support go to http://tvaddons.co" type="text" enable="false"></setting>
+		<setting default="" id="user_agent" type="text" visible="false"></setting>
+		<setting default="" id="agent_refresh_time" type="text" visible="false"></setting>
+		<setting default="false" id="database_init" type="text" visible="false"></setting>
+		<setting default="1" id="database_version" type="number" visible="false"></setting>
+		<setting default="0" id="last_about" type="number" visible="false"></setting>
+	</category>
+	<category label="Search Results and Dependencies">
+		<setting label="Git Installers automatically locates dependencies from:" type="text" enable="false"></setting>
+		<setting id="source_tva" type="bool" label="TVA Repository on GitHub" default="true" visible="true" />
+		<setting id="source_user" type="bool" label="User Repository on GitHub" default="true" visible="true"/>
+		<setting id="source_github" type="bool" label="GitHub Search" default="false" visible="true" />
+		<setting type="sep"></setting>
+		<setting id="install_optional" type="bool" label="Install optional dependencies" default="false" visibile="true"/>
+		<setting id="prompt_optional" type="bool" label="Prompt for Install" default="false" visibile="true" subsetting="true" enable="eq(-1,true)"/>
+	</category>
+	
+	<category label="Update Service">
+		<setting label="This function is not yet implemented" type="text" enable="false"></setting>
+		<setting id="enable_updates" type="bool" label="Enable Automatic Updates" default="false" enable="false"/>  <--! This is not yet suppported, you may enable at your own risk -->
+	</category>
+</settings>
+
+
+
