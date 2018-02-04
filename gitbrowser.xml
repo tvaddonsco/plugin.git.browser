@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<repositories>
+	<repository>
+		<name>TVA</name>
+		<username>tvaddonsco</username>
+    <description>Addons by TVA</description>
+	</repository>
+  <repository>
+		<name>ED Dillinger</name>
+		<username>ed-dillinger</username>
+    <description>Addons by ED Dillinger</description>
+	</repository>
+</repositories>
