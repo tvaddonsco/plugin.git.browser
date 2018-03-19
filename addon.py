@@ -173,8 +173,6 @@ def delete_feed():
 	
 @kodi.register('list_feed')
 def feed_list():
-	#import requests
-	#from commoncore.BeautifulSoup import BeautifulSoup
 	from commoncore.baseapi import CACHABLE_API, EXPIRE_TIMES
 	class FeedAPI(CACHABLE_API):
 		base_url = ''
@@ -182,7 +180,6 @@ def feed_list():
 		
 	try:
 		xml = FeedAPI().request(kodi.arg('url'), cache_limit=EXPIRE_TIMES.EIGHTHOURS)
-		#xml = BeautifulSoup(requests.get(kodi.arg('url')).text)
 		for r in xml.findAll('repository'):
 			name = r.find('name').text
 			username = r.find('username').text

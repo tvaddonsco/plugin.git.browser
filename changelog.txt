@@ -1,3 +1,9 @@
+v1.1.0
+
+- Move to commoncore library
+- Improved AddonID search
+- Feed support
+
 v1.0.0
 
 - Standalone Release
