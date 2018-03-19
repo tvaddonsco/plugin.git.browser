@@ -17,7 +17,7 @@
 
 import xbmc
 import time
-from libs import kodi
+from commoncore import kodi
 
 test = xbmc.__version__.split('.')
 is_depricated = True if int(test[1]) < 19  else False
@@ -29,9 +29,9 @@ class UpdateService():
 		if enable_updates:
 			if not self.last_run or time.time() - self.last_run > self.update_interval:	
 				self.last_run = time.time()
-				plugin_url = kodi.build_plugin_url({"mode": "update_addons", "quiet": "quiet"}, kodi.get_id())			
+				plugin_url = kodi.build_plugin_url({"mode": "update_addons", "quiet": "quiet"}, kodi.get_id())
 				kodi.execute_url(plugin_url)
-
+	
 	def start(self):
 		
 		enable_updates 
