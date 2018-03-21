@@ -231,7 +231,7 @@ def find_zip(user, addon_id):
 
 def browse_repository(url):
 	import requests, zipfile, StringIO
-	from dillinger.common.BeautifulSoup import BeautifulSoup
+	from commoncore.BeautifulSoup import BeautifulSoup
 	r = requests.get(url, stream=True)
 	zip_ref = zipfile.ZipFile(StringIO.StringIO(r.content))
 	for f in zip_ref.namelist():
@@ -244,7 +244,7 @@ def browse_repository(url):
 
 def install_feed(url):
 	import requests, zipfile, StringIO
-	from dillinger.common.BeautifulSoup import BeautifulSoup
+	from commoncore.BeautifulSoup import BeautifulSoup
 	r = requests.get(url, stream=True)
 	zip_ref = zipfile.ZipFile(StringIO.StringIO(r.content))
 	for f in zip_ref.namelist():
