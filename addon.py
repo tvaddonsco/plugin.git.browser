@@ -33,12 +33,16 @@ def main():
 @kodi.register('search_menu')
 def search_menu():
 	from libs.database import DB
-	kodi.add_menu_item({'mode': 'void'}, {'title': "[COLOR darkorange]%s[/COLOR]" % kodi.arg('title')}, icon='null')
-	kodi.add_menu_item({'mode': 'search', 'type': kodi.arg('type')}, {'title': "*** New Search ***"}, icon='null')
+	menu = kodi.ContextMenu()
+	menu.add('Search Filter', {"mode": "search_filter"})
+	kodi.add_menu_item({'mode': 'void'}, {'title': "[COLOR darkorange]%s[/COLOR]" % kodi.arg('title')}, icon='null', menu=menu)
+	kodi.add_menu_item({'mode': 'search', 'type': kodi.arg('type')}, {'title': "*** New Search ***"}, icon='null', menu=menu)
+	#kodi.add_menu_item({'mode': 'search_filter'}, {'title': "Set Result Filter"}, icon='null', menu=menu)
 	results = DB.query_assoc("SELECT search_id, query FROM search_history WHERE search_type=? ORDER BY ts DESC LIMIT 10", [kodi.arg('type')], quiet=True)
 	if results is not None:
 		for result in results:
 			menu = kodi.ContextMenu()
+			menu.add('Search Filter', {"mode": "search_filter"})
 			menu.add('Delete from search history', {"mode": "history_delete", "id": result['search_id']})
 			kodi.add_menu_item({'mode': 'search', 'type': kodi.arg('type'), 'query': result['query']}, {'title': result['query']}, menu=menu, icon='null')
 	kodi.eod()
@@ -64,7 +68,8 @@ def search():
 			if r['is_repository']:
 				menu.add('Browse Repository Contents', {"mode": "browse_repository", "url": url, "file": r['name'], "full_name": "%s/%s" % (q, r['repository']['name'])})
 			if r['is_feed']:
-				kodi.add_menu_item({'mode': 'install_feed', "url": url}, {'title': r['name']}, menu=menu, icon='null')
+				r['display'] = "[COLOR yellow]%s[/COLOR]" % r['name']
+				kodi.add_menu_item({'mode': 'install_feed', "url": url}, {'title': r['name'], 'display': r['display']}, menu=menu, icon='null')
 			else:
 				kodi.add_menu_item({'mode': 'github_install', "url": url, "user": q, "file": r['name'], "full_name": "%s/%s" % (q, r['repository']['name'])}, {'title': r['name']}, menu=menu, icon='null')
 	
@@ -116,6 +121,24 @@ def search():
 	dispatcher.run(kodi.arg('type'))
 	kodi.eod()
 
+@kodi.register('search_filter')
+def search_filter():
+	from commoncore.core import format_color
+	options = display =['None', 'Repository', 'Feed', 'Music Plugin', 'Video Plugin', 'Script']
+	filter = kodi.get_property('search.filter')
+	if filter in options:
+		index = options.index(filter)
+		display[index] = format_color(display[index], 'yellow')
+	else:
+		display[0] = format_color(display[0], 'yellow')
+		
+	c = kodi.dialog_select("Filter Results by:", display)
+	if c is not False:
+		if c is 0:
+			kodi.set_property('search.filter', '')
+		else:
+			kodi.set_property('search.filter', options[c])
+
 @kodi.register('feed_menu')
 def feed_menu():
 	from libs.database import DB
@@ -139,9 +162,10 @@ def install_feed():
 	from libs import github
 	xml = github.install_feed(kodi.arg('url'))
 	try:
-		name = xml.find('name').text
-		url = xml.find('url').text
-		DB.execute("INSERT INTO feed_subscriptions(name, url) VALUES(?,?)", [name, url])
+		for f in xml.findAll('feeds'):
+			name = f.find('name').text
+			url = f.find('url').text
+			DB.execute("INSERT INTO feed_subscriptions(name, url) VALUES(?,?)", [name, url])
 		DB.commit()
 		count = DB.query("SELECT count(1) FROM feed_subscriptions")
 		kodi.set_setting('installed_feeds', str(count[0][0]))
@@ -177,7 +201,6 @@ def feed_list():
 	class FeedAPI(CACHABLE_API):
 		base_url = ''
 		default_return_type = 'xml'
-		
 	try:
 		xml = FeedAPI().request(kodi.arg('url'), cache_limit=EXPIRE_TIMES.EIGHTHOURS)
 		for r in xml.findAll('repository'):

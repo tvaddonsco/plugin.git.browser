@@ -42,12 +42,20 @@ page_limit = 100
 
 def get_token():
 	dts= "" \
-	"ODkzODVmMjg4NjkwNzcw" \
-	"NWVmZmRjODI2NTZmMTZh" \
-	"YTkyODQwMzY3NSAyYjJi" \
-	"MzdlZDZlOWI0NzBjZjBl" \
-	"ZTI5YzcyNmMxY2Y0YWRh" \
-	"YmExZTJj"
+	"NzUxOTg0NjE5YWY3MTEzNmY2ZDM2ZGM4NzFkNzcxY2FjYzZlZG" \
+	"ExNiBlNDQ5Zjc0MjM4ZTY1Mjc1ODIwYjk0Zjc1ZTAxOTE1Njhh" \
+	"NDI3M2Q2IDdiMjFkMTJkMzgzOGFiODYzYzlhMzNhNzZkN2MxZj" \
+	"k0N2M3NDFjMTcgNDhjMjlkN2FjMzUwMWRlM2JhYzU2ODk4NmI2" \
+	"NjJkZWM1MDYyZDA5YyA0NTY3NWVkMzBhMmNkNmQ5MTM4YzQwOT" \
+	"g3NGVhNzRlY2RjYWQ5ZDUzIDBmMmE1MzI0NWM5N2VmNjQ0MmFl" \
+	"NzA0ZjQwYTMzYzUxODdkNzhiNzkgMDNlMDUwOGQxYzE0YjQwZG" \
+	"ZmZmIwNDcwM2FlM2I3MzllNDZmMTQxNCAzM2RmZTk1OWRiNTYy" \
+	"OWIzMTlkY2U3NzhmYjQwNjkwM2FkYTA4ZjMyIDg1ZDBmMDhhND" \
+	"U5ZGM3YmQyNzg1YWJmMTU4M2NkNGVkYzBhM2YxNjMgM2U0NDY2" \
+	"ZTkwYTZhM2Y0NmU1OWU5ZjI4ZDAzNjE5ZmNiMWE4YTMyMiA4OT" \
+	"M4NWYyODg2OTA3NzA1ZWZmZGM4MjY1NmYxNmFhOTI4NDAzNjc1" \
+	"IDJiMmIzN2VkNmU5YjQ3MGNmMGVlMjljNzI2YzFjZjRhZGFiYT" \
+	"FlMmM="
 	return random.choice(base64.b64decode(dts).split())
 
 SORT_ORDER = enum(REPO=0, FEED=1, PLUGIN=2, PROGRAM=3, SKIN=4, SERVICE=5, SCRIPT=6, OTHER=100)
@@ -92,12 +100,17 @@ class GitHubAPI(CACHABLE_API):
 				kodi.notify("API Rate limit exceeded", "Retry in %s seconds(s)" % delay, timeout=1000)
 				kodi.sleep(1000)
 			return self.request(*request_args, **request_kwargs)
+		elif response.status_code == 422 and 'Only the first 1000' in response.text:
+			kodi.handel_error('Result count exceeds API limit.', 'Try different search or result filter.')
+			kodi.close_busy_dialog()
+			traceback.print_stack()
 		else:
 			kodi.close_busy_dialog()
 			traceback.print_stack()
 			raise githubException("Status %s: %s" % (response.status_code, response.text))
 			
 	def process_response(self, url, response, cache_limit, request_args, request_kwargs):
+		kodi.log(response.text)
 		if 'page' in request_kwargs['query']:
 			page = request_kwargs['query']['page'] + 1
 		else:
@@ -191,7 +204,6 @@ def search(q, method=False):
 		return GH.request("/search/repositories", query={"per_page": page_limit, "q": "in:name+%s" % q}, cache_limit=EXPIRE_TIMES.HOUR)
 	elif method == 'id':
 		results = []
-		
 		temp = GH.request("/search/code", query={"per_page": page_limit, "q": "in:path+%s.zip" % q, "access_token": get_token()}, cache_limit=EXPIRE_TIMES.HOUR)
 		for t in temp['items']:
 			if re_version.search(t['name']): results.append(t)
@@ -203,10 +215,16 @@ def find_xml(full_name):
 	return GitHubWeb().request(content_url % (full_name, 'addon.xml'), append_base=False)
 
 def find_zips(user, repo=None):
-	if repo is None:
-		results = limit_versions(GH.request("/search/code", query={"per_page": page_limit, "q":"user:%s+filename:*.zip" % user}, cache_limit=EXPIRE_TIMES.HOUR))
+	filters = {'Repository': '*repository*.zip', 'Feed': '*gitbrowser.feed*.zip', 'Music Plugin': '*plugin.audio*.zip', 'Video Plugin': '*plugin.video*.zip', 'Script': '*script*.zip'}
+	filter = kodi.get_property('search.filter')
+	if filter in filters:
+		q = filters[filter]
 	else:
-		results = limit_versions(GH.request("/search/code", query={"per_page": page_limit, "q":"user:%s+repo:%s+filename:*.zip" % (user, repo)}, cache_limit=EXPIRE_TIMES.HOUR))
+		q = '*.zip'
+	if repo is None:
+		results = limit_versions(GH.request("/search/code", query={"per_page": page_limit, "q":"user:%s+filename:%s" % (user, q)}, cache_limit=EXPIRE_TIMES.HOUR))
+	else:
+		results = limit_versions(GH.request("/search/code", query={"per_page": page_limit, "q":"user:%s+repo:%s+filename:%s" % (user, repo, q)}, cache_limit=EXPIRE_TIMES.HOUR))
 	return results
 
 def find_zip(user, addon_id):
