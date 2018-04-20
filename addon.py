@@ -23,7 +23,7 @@ def main():
 	kodi.add_menu_item({'mode': 'search_menu', 'type': "username", 'title': "Search by GitHub Username"}, {'title': "Search by GitHub Username"}, icon='username.png')
 	kodi.add_menu_item({'mode': 'search_menu', 'type': "repository", 'title': "Search by GitHub Repository Title"}, {'title': "Search by GitHub Repository Title"}, icon='repository.png')
 	kodi.add_menu_item({'mode': 'search_menu', 'type': "addonid",'title': "Search by Addon ID"}, {'title': "Search by Addon ID"}, icon='addonid.png')
-	kodi.add_menu_item({'mode': 'feed_menu'}, {'title': "Search Feeds"}, icon='feeds.png', visible=int(kodi.get_setting('installed_feeds')) > 0)
+	kodi.add_menu_item({'mode': 'feed_menu'}, {'title': "Search Feeds"}, icon='search_feeds.png', visible=int(kodi.get_setting('installed_feeds')) > 0)
 	kodi.add_menu_item({'mode': 'update_addons'}, {'title': "Check for Updates"}, icon='update.png', visible=kodi.get_setting('enable_updates') == 'true')
 	kodi.add_menu_item({'mode': 'about'}, {'title': "About GitHub Installer"}, icon='about.png')
 	kodi.add_menu_item({'mode': 'addon_settings'}, {'title': "Tools and Settings"}, icon='settings.png')

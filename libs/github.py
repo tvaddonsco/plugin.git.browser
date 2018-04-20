@@ -110,7 +110,6 @@ class GitHubAPI(CACHABLE_API):
 			raise githubException("Status %s: %s" % (response.status_code, response.text))
 			
 	def process_response(self, url, response, cache_limit, request_args, request_kwargs):
-		kodi.log(response.text)
 		if 'page' in request_kwargs['query']:
 			page = request_kwargs['query']['page'] + 1
 		else:
