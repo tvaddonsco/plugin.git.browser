@@ -43,3 +43,6 @@ CREATE TABLE IF NOT EXISTS "feed_subscriptions" (
 	"last_update" TIMESTAMP,
 	UNIQUE (url)
 );
+
+INSERT INTO feed_subscriptions ("name", "url", "enabled") VALUES ('TV ADDONS Library', 'http://indigo.tvaddons.co/installer/tva_english.xml', '1');
+
