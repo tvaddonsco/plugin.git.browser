@@ -10,6 +10,11 @@
 		<setting default="false" id="database_init" type="text" visible="false"></setting>
 		<setting default="1" id="database_version" type="number" visible="false"></setting>
 		<setting default="0" id="last_about" type="number" visible="false"></setting>
+		<setting default="0" id="installed_feeds" type="number" visible="false"></setting>
+	</category>
+	<category label="GitHub">
+		<setting id="access_token" type="text" label="Personal Access Token" default="" visible="true" />
+		<setting id="page_limit" type="number" label="Search Limit" default="100" visible="true" />
 	</category>
 	<category label="Search Results and Dependencies">
 		<setting label="Git Installers automatically locates dependencies from:" type="text" enable="false"></setting>
@@ -22,8 +27,9 @@
 	</category>
 	
 	<category label="Update Service">
-		<setting label="This function is not yet implemented" type="text" enable="false"></setting>
-		<setting id="enable_updates" type="bool" label="Enable Automatic Updates" default="false" enable="false"/>  <--! This is not yet suppported, you may enable at your own risk -->
+		<setting label="The update service is experimental" type="lsep"></setting>
+		<setting label="Enable at your own risk!" type="lsep"></setting>
+		<setting id="enable_updates" type="bool" label="Enable Automatic Updates" default="false" enable="true"/>  <--! This is not yet supported, you may enable at your own risk -->
 	</category>
 </settings>
 

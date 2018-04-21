@@ -18,10 +18,10 @@
 import time
 import xbmcgui
 import zipfile
-from libs import requests
-from libs import kodi
-from libs.core import format_size
-from libs.github_api import get_version_by_name, get_version_by_xml
+import requests
+from commoncore import kodi
+from commoncore.core import format_size
+from libs.github import get_version_by_name, get_version_by_xml
 
 class downloaderException(Exception):
 	pass

@@ -21,12 +21,13 @@ import downloader
 import zipfile
 import re
 import shutil
-from libs import kodi
-from libs import github_api
+import requests
 from libs.database import DB
-from libs.BeautifulSoup import BeautifulSoup
-from libs import requests
-from libs.enum import enum
+from libs import github
+from commoncore import kodi
+from commoncore.BeautifulSoup import BeautifulSoup
+from commoncore.enum import enum
+
 
 class installerException(Exception):
 	pass
@@ -46,16 +47,18 @@ def update_addons(quiet=True):
 		source = json.loads(source[1])
 		if kodi.get_condition_visiblity("System.HasAddon(%s)" % addon_id):
 			if source['type'] == SOURCES.ZIP:
-				url, filename, full_name, version = github_api.find_zip(source['user'], addon_id)
-				if LooseVersion(version) > LooseVersion(source['version']):
+				url, filename, full_name, version = github.find_zip(source['user'], addon_id)
+				current_version = kodi.get_addon(addon_id).getAddonInfo('version')
+				if LooseVersion(version) > LooseVersion(current_version):
 					GitHub_Installer(addon_id, url, full_name, kodi.vfs.join("special://home", "addons"), False, quiet)
 					update_count += 1
 			elif source['type'] == SOURCES.REPO:
 				full_name = sources['user'] + '/' + sources['repo']
-				xml_str = github_api.find_xml(full_name)
+				xml_str = github.find_xml(full_name)
 				xml = BeautifulSoup(xml_str)
 				addon = xml.find('addon')
-				if LooseVersion(addon['version']) > LooseVersion(source['version']):
+				current_version = kodi.get_addon(addon_id).getAddonInfo('version')
+				if LooseVersion(addon['version']) > LooseVersion(current_version):
 					GitHub_Installer(addon_id, source['url'], full_name, kodi.vfs.join("special://home", "addons"), True, quiet)
 					update_count += 1
 
@@ -143,8 +146,8 @@ class GitHub_Installer():
 		kodi.log('Finding dependencies for: %s' % addon_id)
 		if master:
 			self.sources[addon_id] = {"type": SOURCES.REPO, "url": url, "user": user, "repo": repo, "version": ""}
-			xml_str = github_api.find_xml(full_name)
-			self.sources[addon_id]['version'] = github_api.get_version_by_xml(BeautifulSoup(xml_str))
+			xml_str = github.find_xml(full_name)
+			self.sources[addon_id]['version'] = github.get_version_by_xml(BeautifulSoup(xml_str))
 		else:
 			version = downloader.download(url, addon_id, self._destination, True, self.quiet)
 			src_file = kodi.vfs.join("special://home/addons", addon_id)
@@ -174,7 +177,7 @@ class GitHub_Installer():
 				kodi.log("%s dependency met in %s" % (test, self.source_table[test]))
 		
 		def user_resolver(user, unmet):
-			dep_url, dep_filename, dep_full_name, version = github_api.find_zip(user, unmet)
+			dep_url, dep_filename, dep_full_name, version = github.find_zip(user, unmet)
 			if dep_url:
 				kodi.log("%s found in %s repo" % (unmet, user))
 				self.met_addons.append(unmet)
@@ -185,7 +188,7 @@ class GitHub_Installer():
 			return False
 		
 		def	github_resolver(unmet):
-			results = github_api.web_search(unmet)
+			results = github.web_search(unmet)
 			c = kodi.dialog_select("GitHub Search Results for %s" % unmet, [r['full_name'] for r in results['items']])
 			if c is not False:
 				dep = results['items'][c]

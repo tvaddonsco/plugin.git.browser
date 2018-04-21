@@ -32,3 +32,14 @@ CREATE VIEW IF NOT EXISTS "cached_requests" AS
 	SELECT request_cache.*, (strftime('%s','now') -  strftime('%s',ts))  AS age 
 	FROM request_cache
 ;
+
+/* Begin Version 2 */;
+
+CREATE TABLE IF NOT EXISTS "feed_subscriptions" (
+	"feed_id" INTEGER PRIMARY KEY AUTOINCREMENT,
+	"name",
+	"url" TEXT,
+	"enabled" INTEGER DEFAULT 1,
+	"last_update" TIMESTAMP,
+	UNIQUE (url)
+);
