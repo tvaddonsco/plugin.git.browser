@@ -10,9 +10,9 @@
 		<setting default="false" id="database_init" type="text" visible="false"></setting>
 		<setting default="1" id="database_version" type="number" visible="false"></setting>
 		<setting default="0" id="last_about" type="number" visible="false"></setting>
-		<setting default="0" id="installed_feeds" type="number" visible="false"></setting>
 	</category>
-	<category label="GitHub">
+	<category label="General">
+		<setting id="disable_about" type="bool" label="Disable instructions dialog" default="false" visibile="true"/>
 		<setting id="access_token" type="text" label="Personal Access Token" default="" visible="true" />
 		<setting id="page_limit" type="number" label="Search Limit" default="100" visible="true" />
 	</category>
