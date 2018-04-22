@@ -20,11 +20,12 @@ from commoncore import kodi
 
 @kodi.register('main')
 def main():
+	show_about()
 	kodi.add_menu_item({'mode': 'search_menu', 'type': "username", 'title': "Search by GitHub Username"}, {'title': "Search by GitHub Username"}, icon='username.png')
-	kodi.add_menu_item({'mode': 'search_menu', 'type': "repository", 'title': "Search by GitHub Repository Title"}, {'title': "Search by GitHub Repository Title"}, icon='repository.png')
-	kodi.add_menu_item({'mode': 'search_menu', 'type': "addonid",'title': "Search by Addon ID"}, {'title': "Search by Addon ID"}, icon='addonid.png')
+	kodi.add_menu_item({'mode': 'search_menu', 'type': "repository", 'title': "Search by GitHub Repository Title"}, {'title': "Search by GitHub Repository Title [COLOR red](Advanced)[/COLOR]"}, icon='repository.png')
+	kodi.add_menu_item({'mode': 'search_menu', 'type': "addonid",'title': "Search by Addon ID"}, {'title': "Search by Addon ID [COLOR red](Advanced)[/COLOR]"}, icon='addonid.png')
 	kodi.add_menu_item({'mode': 'feed_menu'}, {'title': "Search Feeds"}, icon='search_feeds.png', visible=feed_count()>0)
-	kodi.add_menu_item({'mode': 'update_addons'}, {'title': "Check for Updates"}, icon='update.png', visible=kodi.get_setting('enable_updates') == 'true')
+	kodi.add_menu_item({'mode': 'update_addons'}, {'title': "Check for Updates [COLOR red](Advanced)[/COLOR]"}, icon='update.png', visible=kodi.get_setting('enable_updates') == 'true')
 	kodi.add_menu_item({'mode': 'about'}, {'title': "About GitHub Installer"}, icon='about.png')
 	kodi.add_menu_item({'mode': 'addon_settings'}, {'title': "Tools and Settings"}, icon='settings.png')
 	kodi.eod()
@@ -245,6 +246,25 @@ def about():
 		path = kodi.vfs.join(kodi.get_path(), 'resources/language/English/github_help.txt')
 	text = kodi.vfs.read_file(path)
 	kodi.dialog_textbox('GitHub Browser Instructions', text)
+
+def show_about():
+	if kodi.get_setting('disable_about') == 'true': return
+	interval = int(kodi.get_setting('last_about'))
+	if interval == 0:
+		interval = 5
+		try:
+			import xbmc
+			KODI_LANGUAGE = xbmc.getLanguage()
+		except:
+			KODI_LANGUAGE = 'English'
+		path = kodi.vfs.join(kodi.get_path(), 'resources/language/%s/github_help.txt', KODI_LANGUAGE)
+		if not kodi.vfs.exists(path):
+			path = kodi.vfs.join(kodi.get_path(), 'resources/language/English/github_help.txt')
+		text = kodi.vfs.read_file(path)
+		kodi.dialog_textbox('GitHub Browser Instructions', text)
+	else:
+		interval -= 1	
+	kodi.set_setting('last_about', interval)
 
 @kodi.register('browse_repository')
 def browse_repository():
