@@ -144,6 +144,7 @@ def search_filter():
 def feed_menu():
 	from libs.database import DB
 	kodi.add_menu_item({'mode': 'new_feed'}, {'title': "*** New Search Feed ***"}, icon='null')
+	kodi.add_menu_item({'mode': 'search', 'query': 'gitbrowser.feed', 'type': 'addonid'}, {'title': "*** Search for Feeds ***"}, icon='null')
 	feeds = DB.query_assoc("SELECT feed_id, name, url, enabled FROM feed_subscriptions")
 	for feed in feeds:
 		menu = kodi.ContextMenu()
