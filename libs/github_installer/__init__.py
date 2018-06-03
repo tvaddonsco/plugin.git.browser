@@ -79,7 +79,8 @@ class GitHub_Installer():
 	completed = []
 	quiet = False
 	
-	def __init__(self, addon_id, url, full_name, destination, master=False, quiet=False):
+	def __init__(self, addon_id, url, full_name, destination, master=False, quiet=False, installed_list=[]):
+		self.installed_list = installed_list
 		self.quiet = quiet
 		if not self.quiet: kodi.open_busy_dialog()
 		v = kodi.get_kodi_version()
@@ -142,6 +143,9 @@ class GitHub_Installer():
 
 	def build_dependency_list(self, addon_id, url, full_name, master):
 		#if test in ['xbmc.python', 'xbmc.gui'] or kodi.get_condition_visiblity('System.HasAddon(%s)' % addon_id) == 1: return True
+		if addon_id in self.installed_list: 
+			kodi.log('Dependency is already installed: %s' % addon_id)
+			return True
 		user, repo = full_name.split("/")
 		kodi.log('Finding dependencies for: %s' % addon_id)
 		if master:
@@ -166,7 +170,7 @@ class GitHub_Installer():
 						if not c: continue
 			except:
 				pass
-			if test in ['xbmc.python', 'xbmc.gui'] or kodi.get_condition_visiblity('System.HasAddon(%s)' % test) == 1:
+			if test in ['xbmc.python', 'xbmc.gui'] or kodi.get_condition_visiblity('System.HasAddon(%s)' % test) == 1 or test in self.installed_list:
 				kodi.log('Dependency is already installed: %s' % test)
 				continue
 			self.required_addons += [test]
@@ -247,6 +251,7 @@ class GitHub_Installer():
 				self.install_addon(addon_id, source['url'], full_name, True)
 			self.save_source(addon_id, source)
 			self.completed.append(addon_id)
+			self.installed_list.append(addon_id)
 	
 	def save_source(self, addon_id, source):
 		DB.execute("REPLACE INTO install_history(addon_id, source) VALUES(?,?)", [addon_id, json.dumps(source)])

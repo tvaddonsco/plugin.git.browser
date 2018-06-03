@@ -24,12 +24,17 @@ def main():
 	kodi.add_menu_item({'mode': 'search_menu', 'type': "username", 'title': "Search by GitHub Username"}, {'title': "Search by GitHub Username"}, icon='username.png')
 	kodi.add_menu_item({'mode': 'search_menu', 'type': "repository", 'title': "Search by GitHub Repository Title"}, {'title': "Search by GitHub Repository Title [COLOR red](Advanced)[/COLOR]"}, icon='repository.png')
 	kodi.add_menu_item({'mode': 'search_menu', 'type': "addonid",'title': "Search by Addon ID"}, {'title': "Search by Addon ID [COLOR red](Advanced)[/COLOR]"}, icon='addonid.png')
-	kodi.add_menu_item({'mode': 'feed_menu'}, {'title': "Search Feeds"}, icon='search_feeds.png', visible=feed_count()>0)
-	kodi.add_menu_item({'mode': 'update_addons'}, {'title': "Check for Updates [COLOR red](Advanced)[/COLOR]"}, icon='update.png', visible=kodi.get_setting('enable_updates') == 'true')
+	kodi.add_menu_item({'mode': 'feed_menu'}, {'title': "Search Feeds"}, icon='search_feeds.png')
+	kodi.add_menu_item({'mode': 'installer_menu'}, {'title': "Batch Installers"}, icon='batch_installer.png') 
 	kodi.add_menu_item({'mode': 'about'}, {'title': "About GitHub Installer"}, icon='about.png')
-	kodi.add_menu_item({'mode': 'addon_settings'}, {'title': "Tools and Settings"}, icon='settings.png')
+	kodi.add_menu_item({'mode': 'settings_menu'}, {'title': "Tools and Settings"}, icon='settings.png')
 	kodi.eod()
-		
+
+@kodi.register('settings_menu')
+def settings_menu():
+	kodi.add_menu_item({'mode': 'update_addons'}, {'title': "Check for Updates [COLOR red](Advanced)[/COLOR]"}, icon='update.png', visible=kodi.get_setting('enable_updates') == 'true')
+	kodi.add_menu_item({'mode': 'addon_settings'}, {'title': "Addon Settings"}, icon='settings.png')
+	kodi.eod()
 	
 @kodi.register('search_menu')
 def search_menu():
@@ -149,7 +154,7 @@ def search_filter():
 @kodi.register('feed_menu')
 def feed_menu():
 	from libs.database import DB
-	kodi.add_menu_item({'mode': 'new_feed'}, {'title': "*** New Search Feed ***"}, icon='null')
+	kodi.add_menu_item({'mode': 'install_local_feed'}, {'title': "*** Local Search Feed File ***"}, icon='null')
 	kodi.add_menu_item({'mode': 'search', 'query': 'gitbrowser.feed', 'type': 'addonid'}, {'title': "*** Search for Feeds ***"}, icon='null')
 	feeds = DB.query_assoc("SELECT feed_id, name, url, enabled FROM feed_subscriptions")
 	for feed in feeds:
@@ -163,12 +168,26 @@ def feed_menu():
 		kodi.add_menu_item({'mode': 'list_feed', 'url': feed['url']}, {'title': title}, menu=menu, icon='null')
 	kodi.eod()
 
-@kodi.register('install_feed')
+@kodi.register('installer_menu')
+def installer_menu():
+	kodi.add_menu_item({'mode': 'browse_local'}, {'title': "*** Install From Local File ***"}, icon='null')
+	kodi.add_menu_item({'mode': 'search', 'query': 'gitbrowser.installer', 'type': 'addonid'}, {'title': "*** Search for Batch Installers ***"}, icon='null')
+	kodi.eod()
+	
+
+@kodi.register(['install_feed', 'install_local_feed'])
 def install_feed():
-	if not kodi.dialog_confirm('Install Feed?', "Click YES to proceed."): return
 	from libs.database import DB
 	from libs import github
-	xml = github.install_feed(kodi.arg('url'))
+	if kodi.mode == 'install_feed':
+		url = kodi.arg('url')
+		xml = github.install_feed(url)
+	else:
+		url = kodi.dialog_file_browser('Select a feed file', mask='.zip')
+		if not github.re_feed.search(url): return
+		xml = github.install_feed(url, True)
+	if not kodi.dialog_confirm('Install Feed?', "Click YES to proceed."): return
+	
 	try:
 		for f in xml.findAll('feeds'):
 			name = f.find('name').text
@@ -189,24 +208,33 @@ def feed_count():
 		count = 0
 	return count
 
-@kodi.register('install_batch')
+
+@kodi.register(['install_batch', 'browse_local'])
 def install_batch():
-	if not kodi.dialog_confirm('Batch Installer?', "Click YES to proceed.", "This will install a list of addons.", "Some configuration files and settings may be overwritten."): return
 	from libs import github
 	from libs import github_installer
-	url = kodi.arg('url')
-	xml, zip_ref = github.batch_installer(url)
+	if kodi.mode == 'install_batch':
+		url = kodi.arg('url')
+		xml, zip_ref = github.batch_installer(url)
+	else:
+		url = kodi.dialog_file_browser('Select a install file', mask='.zip')
+		if not github.re_installer.search(url): return
+		xml, zip_ref = github.batch_installer(url, True)
+	if not kodi.dialog_confirm('Batch Installer?', "Click YES to proceed.", "This will install a list of addons.", "Some configuration files and settings may be overwritten."): return
 	if not xml: return
 	# Install each addon as instructed
+	installed_list = []
 	for a in xml.findAll('addon'):
 		addon_id = a.find('addon_id')
 		username = a.find('username')
 		if addon_id is None or username is None: continue
 		username = username.text
 		addon_id = addon_id.text
-		url, filename, full_name, version = github.find_zip(username, addon_id)
-		github_installer.GitHub_Installer(addon_id, url, full_name, kodi.vfs.join("special://home", "addons"))
-		kodi.sleep(1000)
+		if not kodi.get_condition_visiblity("System.HasAddon(%s)"% addon_id):
+			kodi.log("Batch install " + addon_id)
+			url, filename, full_name, version = github.find_zip(username, addon_id)
+			installed_list += github_installer.GitHub_Installer(addon_id, url, full_name, kodi.vfs.join("special://home", "addons"), installed_list=installed_list).installed_list
+			kodi.sleep(1000)
 		
 	# Look for config files.
 	# Need to add error checking for missing config files
@@ -259,7 +287,6 @@ def install_batch():
 			xbmc.executebuiltin('RestartApp')
 		else:
 			xbmc.executebuiltin('ShutDown')
-
 	
 @kodi.register('new_feed')
 def new_feed():
