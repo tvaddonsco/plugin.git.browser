@@ -39,7 +39,7 @@ def search_menu():
 	kodi.add_menu_item({'mode': 'void'}, {'title': "[COLOR darkorange]%s[/COLOR]" % kodi.arg('title')}, icon='null', menu=menu)
 	kodi.add_menu_item({'mode': 'search', 'type': kodi.arg('type')}, {'title': "*** New Search ***"}, icon='null', menu=menu)
 	#kodi.add_menu_item({'mode': 'search_filter'}, {'title': "Set Result Filter"}, icon='null', menu=menu)
-	results = DB.query_assoc("SELECT search_id, query FROM search_history WHERE search_type=? ORDER BY ts DESC LIMIT 10", [kodi.arg('type')], quiet=True)
+	results = DB.query_assoc("SELECT search_id, query FROM search_history WHERE search_type=? ORDER BY ts DESC LIMIT 50", [kodi.arg('type')], quiet=True)
 	if results is not None:
 		for result in results:
 			menu = kodi.ContextMenu()
@@ -55,7 +55,7 @@ def search():
 	from libs import github
 	q = kodi.arg('query') if kodi.arg('query') else kodi.dialog_input('Search GitHub')
 	if q in [None, False, '']: return False
-	DB.execute('INSERT INTO search_history(search_type, query) VALUES(?,?)', [kodi.arg('type'), q])
+    DB.execute('INSERT OR REPLACE INTO search_history(search_type, query) VALUES(?,?)', [kodi.arg('type'), q])
 	DB.commit()
 	
 	@dispatcher.register('username')
