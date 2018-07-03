@@ -79,9 +79,10 @@ class GitHub_Installer():
 	completed = []
 	quiet = False
 	
-	def __init__(self, addon_id, url, full_name, destination, master=False, quiet=False, installed_list=[]):
+	def __init__(self, addon_id, url, full_name, destination, master=False, quiet=False, installed_list=[], batch=False):
 		self.installed_list = installed_list
 		self.quiet = quiet
+		self.batch=batch
 		if not self.quiet: kodi.open_busy_dialog()
 		v = kodi.get_kodi_version()
 		

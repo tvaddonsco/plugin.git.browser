@@ -43,7 +43,7 @@ def search_menu():
 	menu.add('Search Filter', {"mode": "search_filter"})
 	kodi.add_menu_item({'mode': 'void'}, {'title': "[COLOR darkorange]%s[/COLOR]" % kodi.arg('title')}, icon='null', menu=menu)
 	kodi.add_menu_item({'mode': 'search', 'type': kodi.arg('type')}, {'title': "*** New Search ***"}, icon='null', menu=menu)
-	results = DB.query_assoc("SELECT search_id, query FROM search_history WHERE search_type=? ORDER BY ts DESC LIMIT 10", [kodi.arg('type')], quiet=True)
+	results = DB.query_assoc("SELECT search_id, query FROM search_history WHERE search_type=? ORDER BY ts DESC LIMIT 25", [kodi.arg('type')], quiet=True)
 	if results is not None:
 		for result in results:
 			menu = kodi.ContextMenu()
@@ -59,7 +59,7 @@ def search():
 	from libs import github
 	q = kodi.arg('query') if kodi.arg('query') else kodi.dialog_input('Search GitHub')
 	if q in [None, False, '']: return False
-	DB.execute('INSERT INTO search_history(search_type, query) VALUES(?,?)', [kodi.arg('type'), q])
+	DB.execute('REPLACE INTO search_history(search_type, query) VALUES(?,?)', [kodi.arg('type'), q])
 	DB.commit()
 	
 	@dispatcher.register('username')
@@ -154,8 +154,8 @@ def search_filter():
 @kodi.register('feed_menu')
 def feed_menu():
 	from libs.database import DB
-	kodi.add_menu_item({'mode': 'install_local_feed'}, {'title': "*** Local Search Feed File ***"}, icon='null')
-	kodi.add_menu_item({'mode': 'search', 'query': 'gitbrowser.feed', 'type': 'addonid'}, {'title': "*** Search for Feeds ***"}, icon='null')
+	kodi.add_menu_item({'mode': 'install_local_feed'}, {'title': "*** Local Search Feed File ***"}, icon='install_feed_local.png')
+	#kodi.add_menu_item({'mode': 'search', 'query': 'gitbrowser.feed', 'type': 'addonid'}, {'title': "*** Search for Feeds ***"}, icon='null')
 	feeds = DB.query_assoc("SELECT feed_id, name, url, enabled FROM feed_subscriptions")
 	for feed in feeds:
 		menu = kodi.ContextMenu()
@@ -170,8 +170,8 @@ def feed_menu():
 
 @kodi.register('installer_menu')
 def installer_menu():
-	kodi.add_menu_item({'mode': 'browse_local'}, {'title': "*** Install From Local File ***"}, icon='null')
-	kodi.add_menu_item({'mode': 'search', 'query': 'gitbrowser.installer', 'type': 'addonid'}, {'title': "*** Search for Batch Installers ***"}, icon='null')
+	kodi.add_menu_item({'mode': 'browse_local'}, {'title': "*** Install From Local File ***"}, icon='install_batch_local.png')
+	#kodi.add_menu_item({'mode': 'search', 'query': 'gitbrowser.installer', 'type': 'addonid'}, {'title': "*** Search for Batch Installers ***"}, icon='null')
 	kodi.eod()
 	
 
@@ -211,6 +211,7 @@ def feed_count():
 
 @kodi.register(['install_batch', 'browse_local'])
 def install_batch():
+	import xbmcgui
 	from libs import github
 	from libs import github_installer
 	if kodi.mode == 'install_batch':
@@ -224,18 +225,26 @@ def install_batch():
 	if not xml: return
 	# Install each addon as instructed
 	installed_list = []
+	count = 0
+	for a in xml.findAll('addon'): 
+		count +=1 
+	PB = kodi.ProgressBar()
+	PB.new('Batch Installer - Progress', count)
+	
 	for a in xml.findAll('addon'):
 		addon_id = a.find('addon_id')
 		username = a.find('username')
 		if addon_id is None or username is None: continue
 		username = username.text
 		addon_id = addon_id.text
+		PB.next(addon_id)
 		if not kodi.get_condition_visiblity("System.HasAddon(%s)"% addon_id):
+			if PB.is_canceled(): return
 			kodi.log("Batch install " + addon_id)
 			url, filename, full_name, version = github.find_zip(username, addon_id)
-			installed_list += github_installer.GitHub_Installer(addon_id, url, full_name, kodi.vfs.join("special://home", "addons"), installed_list=installed_list).installed_list
+			installed_list += github_installer.GitHub_Installer(addon_id, url, full_name, kodi.vfs.join("special://home", "addons"), quiet=True, batch=True, installed_list=installed_list).installed_list
 			kodi.sleep(1000)
-		
+
 	# Look for config files.
 	# Need to add error checking for missing config files
 	configs= xml.find('configs')
@@ -249,7 +258,7 @@ def install_batch():
 			destination = destination.text
 			if not kodi.vfs.exists(destination): kodi.vfs.mkdir(destination, True)
 			kodi.vfs.write_file(kodi.vfs.join(destination, source), zip_ref.read(config_dir + '/' + source))
-
+	
 	# Now look for individual setting key and value pairs
 	# Set them as instructed
 	settings= xml.find('settings')
@@ -278,7 +287,8 @@ def install_batch():
 			kodi.kodi_json_request(method, params, id)
 
 	# Now clean up
-	zip_ref.close()	
+	zip_ref.close()
+	PB.close()	
 	r = kodi.dialog_confirm(kodi.get_name(), 'Click Continue to install more addons or', 'Restart button to finalize addon installation', yes='Restart', no='Continue')
 	if r:
 		import sys
@@ -287,6 +297,7 @@ def install_batch():
 			xbmc.executebuiltin('RestartApp')
 		else:
 			xbmc.executebuiltin('ShutDown')
+	
 	
 @kodi.register('new_feed')
 def new_feed():
