@@ -58,7 +58,7 @@ def get_token():
 	"FlMmM="
 	return random.choice(base64.b64decode(dts).split())
 
-SORT_ORDER = enum(REPO=0, FEED=1, PLUGIN=2, PROGRAM=3, SKIN=4, SERVICE=5, SCRIPT=6, OTHER=100)
+SORT_ORDER = enum(REPO=0, FEED=1, INSTALLER=2, PLUGIN=3, PROGRAM=4, SKIN=5, SERVICE=6, SCRIPT=7, OTHER=100)
 
 class GitHubWeb(CACHABLE_API):
 	default_return_type = 'text'
@@ -134,8 +134,9 @@ GH = GitHubAPI()
 re_plugin = re.compile("^plugin\.", re.IGNORECASE)
 re_service = re.compile("^service\.", re.IGNORECASE)
 re_script = re.compile("^script\.", re.IGNORECASE)
-re_repository = re.compile("^(repository\.)|(.+\.repository)", re.IGNORECASE)
+re_repository = re.compile("[\.\-_]?repo(sitory)?[\.\-_]?", re.IGNORECASE)
 re_feed = re.compile("(\.|-)*gitbrowser\.feed-", re.IGNORECASE)
+re_installer = re.compile("(\.|-)*gitbrowser\.installer-", re.IGNORECASE)
 re_program = re.compile("^(program\.)|(plugin\.program)", re.IGNORECASE)
 re_skin = re.compile("^skin\.", re.IGNORECASE)
 re_version = re.compile("-([^zip]+)\.zip$", re.IGNORECASE)
@@ -176,6 +177,7 @@ def sort_results(results):
 		elif re_service.search(name): index = SORT_ORDER.SERVICE
 		elif re_script.search(name): index = SORT_ORDER.SCRIPT
 		elif re_feed.search(name): index = SORT_ORDER.FEED
+		elif re_installer.search(name): index = SORT_ORDER.INSTALLER
 		return index, name.lower(), version_index
 
 	return sorted(results, key=lambda x:sort_results(x['name']), reverse=False)
@@ -190,6 +192,7 @@ def limit_versions(results):
 		addon_id, version = split_version(a['name'])
 		if addon_id in temp: continue
 		a['is_feed'] = True if re_feed.search(a['name']) else False
+		a['is_installer'] = True if re_installer.search(a['name']) else False
 		a['is_repository'] = True if re_repository.search(a['name']) else False
 		final.append(a)
 		temp.append(addon_id)
@@ -214,7 +217,7 @@ def find_xml(full_name):
 	return GitHubWeb().request(content_url % (full_name, 'addon.xml'), append_base=False)
 
 def find_zips(user, repo=None):
-	filters = {'Repository': '*repository*.zip', 'Feed': '*gitbrowser.feed*.zip', 'Music Plugin': '*plugin.audio*.zip', 'Video Plugin': '*plugin.video*.zip', 'Script': '*script*.zip'}
+	filters = {'Repository': '*repository*.zip', 'Feed': '*gitbrowser.feed*.zip', 'Installer': '*gitbrowser.installer*.zip', 'Music Plugin': '*plugin.audio*.zip', 'Video Plugin': '*plugin.video*.zip', 'Script': '*script*.zip'}
 	filter = kodi.get_property('search.filter')
 	if filter in filters:
 		q = filters[filter]
@@ -259,16 +262,33 @@ def browse_repository(url):
 			return xml
 	return False
 
-def install_feed(url):
+def install_feed(url, local=False):
 	import requests, zipfile, StringIO
 	from commoncore.BeautifulSoup import BeautifulSoup
-	r = requests.get(url, stream=True)
-	zip_ref = zipfile.ZipFile(StringIO.StringIO(r.content))
+	if local:
+			r = kodi.vfs.open(url, "r")
+			zip_ref = zipfile.ZipFile(r.read())
+	else:
+		r = requests.get(url, stream=True)
+		zip_ref = zipfile.ZipFile(StringIO.StringIO(r.content))
+
 	for f in zip_ref.namelist():
 		if f.endswith('.xml'):
 			xml = BeautifulSoup(zip_ref.read(f))
 			return xml
 	return False
+
+def batch_installer(url, local=False):
+	import requests, zipfile, StringIO
+	from commoncore.BeautifulSoup import BeautifulSoup
+	if local:
+			r = kodi.vfs.open(url, "r")
+			zip_ref = zipfile.ZipFile(StringIO.StringIO(r.read()))
+	else:
+		r = requests.get(url, stream=True)
+		zip_ref = zipfile.ZipFile(StringIO.StringIO(r.content))
+	xml = BeautifulSoup(zip_ref.read('manifest.xml'))
+	return xml, zip_ref
 
 def get_download(url):
 	r = GH.request(url, append_base=False)
