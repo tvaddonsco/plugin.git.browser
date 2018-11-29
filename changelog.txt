@@ -1,3 +1,7 @@
+v1.1.6
+- Fixed error where  older addon version was retrieved
+- Fixed dependency retrieval error
+
 v1.1.5
 - Batch Installer (Secure alternative to "Kodi builds")
 

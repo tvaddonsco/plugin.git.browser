@@ -190,6 +190,9 @@ def limit_versions(results):
 	for a in sorted_results:
 		if not is_zip(a['name']): continue
 		addon_id, version = split_version(a['name'])
+		for x in sorted_results:
+			x_addon_id, x_version = split_version(x['name'])
+			a = x if x_addon_id == addon_id and x_version > version else a
 		if addon_id in temp: continue
 		a['is_feed'] = True if re_feed.search(a['name']) else False
 		a['is_installer'] = True if re_installer.search(a['name']) else False

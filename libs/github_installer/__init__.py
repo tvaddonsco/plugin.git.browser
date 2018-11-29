@@ -229,7 +229,7 @@ class GitHub_Installer():
 			if not self.quiet:
 				kodi.close_busy_dialog()
 				kodi.raise_error("", "Unmet Dependencies:", "See log or install manually", ','.join(self.unmet_addons))
-			kodi.log("Unmet Dependencies for addon install: %s" % self.addon_id)
+			kodi.log("Unmet Dependencies for addon install: %s" % addon_id)  # % self.addon_id)
 			kodi.log(','.join(self.unmet_addons))
 		self.completed.append(addon_id)	
 
