@@ -102,6 +102,7 @@ class GitHub_Installer():
 					self.available_addons += [a[0]]
 					self.source_table[a[0]] = a[2]
 			dbh.close()
+		kodi.log(full_name)	
 		self._addon_id = addon_id
 		self._url = url
 		self._full_name = full_name

@@ -107,19 +107,10 @@ def search():
 	@dispatcher.register('addonid')
 	def addonid():
 		from commoncore.core import highlight
-		from libs.github import re_version, content_url
-		from distutils.version import LooseVersion
+		from libs.github import version_sort, content_url
 		rtype = 'api'
 		results = github.search(q, 'id')
 		if results is None: return
-
-		def version_sort(name):
-			v = re_version.search(name)
-			if v:
-				return LooseVersion(v.group(1))
-			else: 
-				return LooseVersion('0.0.0')
-		
 		results.sort(key=lambda x:version_sort(x['name']), reverse=True)
 			
 		for i in results:

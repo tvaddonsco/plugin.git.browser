@@ -32,6 +32,10 @@ def format_status(cached, total, speed):
 	speed = format_size(speed, 'B/s')
 	return 	"%s of %s at %s" % (cached, total, speed) 
 
+def test_url(url):
+	r = requests.head(url)
+	return r.status_code == requests.codes.ok
+
 def download(url, addon_id, destination, unzip=False, quiet=False):
 	version = None
 	filename = addon_id + '.zip'
