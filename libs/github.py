@@ -35,10 +35,10 @@ from libs.database import DB
 
 class githubException(Exception):
 	pass
-
+default_branch = 'master'
 base_url = "https://api.github.com"
-content_url = "https://raw.githubusercontent.com/%s/master/%s"
-content_url2 = "https://raw.githubusercontent.com/%s/ghmaster/%s"
+content_url = "https://raw.githubusercontent.com/%s/%s/%s"
+#content_url2 = "https://raw.githubusercontent.com/%s/ghmaster/%s"
 master_url = "https://github.com/%s/%s/archive/master.zip"
 page_limit = 100
 
@@ -154,6 +154,18 @@ def split_version(name):
 	except:
 		return False, False
 
+def get_download_url(full_name, path):
+	from github_installer.downloader import test_url
+	url = content_url % (full_name, default_branch, path)
+	if test_url(url): return url
+	# didn't work, need to get the branch name
+	response = requests.get("https://api.github.com/repos/%s/branches" % full_name)
+	branch = response.json()[0]['name']
+	url = content_url % (full_name, branch, path)
+	return url
+
+	
+
 def get_version_by_name(name):
 	version = re_version.search(name)
 	if version:
@@ -169,6 +181,17 @@ def get_version_by_xml(xml):
 		return False	
 
 def sort_results(results, limit=False):
+	def highest_versions(results):
+		last = ""
+		final = []
+		for a in results:
+			addon_id, version = split_version(a['name'])
+			if addon_id == last: continue
+			last = addon_id
+			kodi.log(a)
+			final.append(a)
+		return final
+		
 	def sort_results(name):
 		index = SORT_ORDER.OTHER
 		version = get_version_by_name(name)
@@ -182,15 +205,7 @@ def sort_results(results, limit=False):
 		elif re_installer.search(name): index = SORT_ORDER.INSTALLER
 		return index, name.lower(), version_index
 	if limit:
-		sorted_results = sorted(results, key=lambda x:sort_results(x['name']), reverse=True)
-		unique = []
-		final = []
-		for a in sorted_results:
-			addon_id, version = split_version(a['name'])
-			if addon_id in unique: continue
-			unique.append(addon_id)
-			final.append(a)
-		return final
+		return highest_versions(sorted(results, key=lambda x:sort_results(x['name']), reverse=True))
 	else:
 		return sorted(results, key=lambda x:sort_results(x['name']), reverse=False)
 
@@ -228,7 +243,7 @@ def search(q, method=False):
 		return GH.request("/search/repositories", query={"per_page": page_limit, "q": q}, cache_limit=EXPIRE_TIMES.HOUR)
 
 def find_xml(full_name):
-	return GitHubWeb().request(content_url % (full_name, 'addon.xml'), append_base=False)
+	return GitHubWeb().request(content_url % (full_name, default_branch, 'addon.xml'), append_base=False)
 
 def find_zips(user, repo=None):
 	filters = {'Repository': '*repository*.zip', 'Feed': '*gitbrowser.feed*.zip', 'Installer': '*gitbrowser.installer*.zip', 'Music Plugin': '*plugin.audio*.zip', 'Video Plugin': '*plugin.video*.zip', 'Script': '*script*.zip'}
@@ -258,9 +273,7 @@ def find_zip(user, addon_id):
 		
 		for r in response['items']:
 			if test.match(r['name']):
-				url = content_url % (r['repository']['full_name'], r['path'])
-				if not test_url(url):
-					url =  content_url2 % (r['repository']['full_name'], r['path'])
+				url = get_download_url(r['repository']['full_name'], r['path'])
 				version = get_version_by_name(r['path'])
 				return url, r['name'], r['repository']['full_name'], version
 	return False, False, False, False
