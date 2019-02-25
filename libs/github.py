@@ -30,13 +30,15 @@ from commoncore import dom_parser
 from commoncore.baseapi import DB_CACHABLE_API as CACHABLE_API, EXPIRE_TIMES
 from distutils.version import LooseVersion
 
+
 from libs.database import DB
 
 class githubException(Exception):
 	pass
-
+default_branch = 'master'
 base_url = "https://api.github.com"
-content_url = "https://raw.githubusercontent.com/%s/master/%s"
+content_url = "https://raw.githubusercontent.com/%s/%s/%s"
+#content_url2 = "https://raw.githubusercontent.com/%s/ghmaster/%s"
 master_url = "https://github.com/%s/%s/archive/master.zip"
 page_limit = 100
 
@@ -152,6 +154,18 @@ def split_version(name):
 	except:
 		return False, False
 
+def get_download_url(full_name, path):
+	from github_installer.downloader import test_url
+	url = content_url % (full_name, default_branch, path)
+	if test_url(url): return url
+	# didn't work, need to get the branch name
+	response = requests.get("https://api.github.com/repos/%s/branches" % full_name)
+	branch = response.json()[0]['name']
+	url = content_url % (full_name, branch, path)
+	return url
+
+	
+
 def get_version_by_name(name):
 	version = re_version.search(name)
 	if version:
@@ -166,7 +180,18 @@ def get_version_by_xml(xml):
 	except:
 		return False	
 
-def sort_results(results):
+def sort_results(results, limit=False):
+	def highest_versions(results):
+		last = ""
+		final = []
+		for a in results:
+			addon_id, version = split_version(a['name'])
+			if addon_id == last: continue
+			last = addon_id
+			kodi.log(a)
+			final.append(a)
+		return final
+		
 	def sort_results(name):
 		index = SORT_ORDER.OTHER
 		version = get_version_by_name(name)
@@ -179,26 +204,27 @@ def sort_results(results):
 		elif re_feed.search(name): index = SORT_ORDER.FEED
 		elif re_installer.search(name): index = SORT_ORDER.INSTALLER
 		return index, name.lower(), version_index
+	if limit:
+		return highest_versions(sorted(results, key=lambda x:sort_results(x['name']), reverse=True))
+	else:
+		return sorted(results, key=lambda x:sort_results(x['name']), reverse=False)
 
-	return sorted(results, key=lambda x:sort_results(x['name']), reverse=False)
-
+def version_sort(name):
+	v = re_version.search(name)
+	if v:
+		return LooseVersion(v.group(1))
+	else: 
+		return LooseVersion('0.0.0')
 
 def limit_versions(results):
 	final = []
-	temp = []
-	sorted_results = sort_results(results['items'])
+	sorted_results = sort_results(results['items'], True)
 	for a in sorted_results:
 		if not is_zip(a['name']): continue
-		addon_id, version = split_version(a['name'])
-		for x in sorted_results:
-			x_addon_id, x_version = split_version(x['name'])
-			a = x if x_addon_id == addon_id and x_version > version else a
-		if addon_id in temp: continue
 		a['is_feed'] = True if re_feed.search(a['name']) else False
 		a['is_installer'] = True if re_installer.search(a['name']) else False
 		a['is_repository'] = True if re_repository.search(a['name']) else False
 		final.append(a)
-		temp.append(addon_id)
 	results['items'] = final
 	return results
 
@@ -217,7 +243,7 @@ def search(q, method=False):
 		return GH.request("/search/repositories", query={"per_page": page_limit, "q": q}, cache_limit=EXPIRE_TIMES.HOUR)
 
 def find_xml(full_name):
-	return GitHubWeb().request(content_url % (full_name, 'addon.xml'), append_base=False)
+	return GitHubWeb().request(content_url % (full_name, default_branch, 'addon.xml'), append_base=False)
 
 def find_zips(user, repo=None):
 	filters = {'Repository': '*repository*.zip', 'Feed': '*gitbrowser.feed*.zip', 'Installer': '*gitbrowser.installer*.zip', 'Music Plugin': '*plugin.audio*.zip', 'Video Plugin': '*plugin.video*.zip', 'Script': '*script*.zip'}
@@ -235,9 +261,10 @@ def find_zips(user, repo=None):
 def find_zip(user, addon_id):
 	results = []
 	response = GH.request("/search/code", query={"q": "user:%s+filename:%s*.zip" % (user, addon_id)}, cache_limit=EXPIRE_TIMES.HOUR)
+	from github_installer.downloader import test_url
 	if response is None: return False, False, False
 	if response['total_count'] > 0:
-		test = re.compile("%s-.+\.zip$" % addon_id, re.IGNORECASE)
+		test = re.compile("%s(-.+\.zip|\.zip)$" % addon_id, re.IGNORECASE)
 		def sort_results(name):
 			version = get_version_by_name(name)
 			return LooseVersion(version)
@@ -246,7 +273,7 @@ def find_zip(user, addon_id):
 		
 		for r in response['items']:
 			if test.match(r['name']):
-				url = content_url % (r['repository']['full_name'], r['path'])
+				url = get_download_url(r['repository']['full_name'], r['path'])
 				version = get_version_by_name(r['path'])
 				return url, r['name'], r['repository']['full_name'], version
 	return False, False, False, False

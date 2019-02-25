@@ -57,6 +57,7 @@ def search():
 	from commoncore.dispatcher import dispatcher
 	from libs.database import DB
 	from libs import github
+	from libs.github import get_download_url
 	q = kodi.arg('query') if kodi.arg('query') else kodi.dialog_input('Search GitHub')
 	if q in [None, False, '']: return False
 	DB.execute('REPLACE INTO search_history(search_type, query) VALUES(?,?)', [kodi.arg('type'), q])
@@ -68,7 +69,7 @@ def search():
 		response = github.find_zips(q)
 		if response is None: return
 		for r in github.sort_results(response['items']):
-			url = github.content_url % (r['repository']['full_name'], r['path'])
+			url = get_download_url(r['repository']['full_name'], r['path'])
 			menu = kodi.ContextMenu()
 			if r['is_repository']:
 				menu.add('Browse Repository Contents', {"mode": "browse_repository", "url": url, "file": r['name'], "full_name": "%s/%s" % (q, r['repository']['name'])})
@@ -91,7 +92,7 @@ def search():
 			response = github.find_zips(user)
 			if response is None: continue
 			for r in github.sort_results(response['items']):
-				url = github.content_url % (r['repository']['full_name'], r['path'])
+				url = get_download_url(r['repository']['full_name'], r['path'])
 				menu = kodi.ContextMenu()
 				if r['is_repository']:
 					menu.add('Browse Repository Contents', {"mode": "browse_repository", "url": url, "file": r['name'], "full_name": "%s/%s" % (q, r['repository']['name'])})
@@ -107,19 +108,10 @@ def search():
 	@dispatcher.register('addonid')
 	def addonid():
 		from commoncore.core import highlight
-		from libs.github import re_version, content_url
-		from distutils.version import LooseVersion
+		from libs.github import version_sort
 		rtype = 'api'
 		results = github.search(q, 'id')
 		if results is None: return
-
-		def version_sort(name):
-			v = re_version.search(name)
-			if v:
-				return LooseVersion(v.group(1))
-			else: 
-				return LooseVersion('0.0.0')
-		
 		results.sort(key=lambda x:version_sort(x['name']), reverse=True)
 			
 		for i in results:
@@ -127,7 +119,7 @@ def search():
 			r = i['repository']
 			full_name = r['full_name']
 			title = highlight("%s/%s" % (full_name, i['name']), q, 'yellow')
-			url = content_url % (full_name, i['path'])
+			url = get_download_url(full_name, i['path'])
 			menu.add("Search Username", {'mode': 'search', 'type': 'username', 'query': r['owner']['login']})
 			kodi.add_menu_item({'mode': 'github_install', "url": url, "file": i['name'], "full_name": full_name}, {'title': title}, menu=menu, icon='null')
 	dispatcher.run(kodi.arg('type'))
