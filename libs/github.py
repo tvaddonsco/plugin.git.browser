@@ -18,19 +18,20 @@
 import re
 import math
 import json
-import urllib
 import base64
 import random
 import requests
 import traceback
 from commoncore.core import highlight
-from commoncore.enum import enum
 from commoncore import kodi
 from commoncore import dom_parser
 from commoncore.baseapi import DB_CACHABLE_API as CACHABLE_API, EXPIRE_TIMES
 from distutils.version import LooseVersion
-
-
+try:
+	from urllib.parse import urlencode
+except ImportError:
+	from urllib import urlencode
+	
 from libs.database import DB
 
 class githubException(Exception):
@@ -60,7 +61,7 @@ def get_token():
 	"FlMmM="
 	return random.choice(base64.b64decode(dts).split())
 
-SORT_ORDER = enum(REPO=0, FEED=1, INSTALLER=2, PLUGIN=3, PROGRAM=4, SKIN=5, SERVICE=6, SCRIPT=7, OTHER=100)
+SORT_ORDER = kodi.enum(REPO=0, FEED=1, INSTALLER=2, PLUGIN=3, PROGRAM=4, SKIN=5, SERVICE=6, SCRIPT=7, OTHER=100)
 
 class GitHubWeb(CACHABLE_API):
 	default_return_type = 'text'
@@ -83,7 +84,7 @@ class GitHubAPI(CACHABLE_API):
 			else:
 				query["access_token"] = token
 		if query is not None:
-			query = urllib.urlencode(query)
+			query = urlencode(query)
 			for r in [('%3A', ":"), ("%2B", "+")]:
 				f,t = r
 				query = query.replace(f,t)
@@ -155,7 +156,7 @@ def split_version(name):
 		return False, False
 
 def get_download_url(full_name, path):
-	from github_installer.downloader import test_url
+	from .github_installer.downloader import test_url
 	url = content_url % (full_name, default_branch, path)
 	if test_url(url): return url
 	# didn't work, need to get the branch name
@@ -188,7 +189,6 @@ def sort_results(results, limit=False):
 			addon_id, version = split_version(a['name'])
 			if addon_id == last: continue
 			last = addon_id
-			kodi.log(a)
 			final.append(a)
 		return final
 		
@@ -261,7 +261,7 @@ def find_zips(user, repo=None):
 def find_zip(user, addon_id):
 	results = []
 	response = GH.request("/search/code", query={"q": "user:%s+filename:%s*.zip" % (user, addon_id)}, cache_limit=EXPIRE_TIMES.HOUR)
-	from github_installer.downloader import test_url
+	from .github_installer.downloader import test_url
 	if response is None: return False, False, False
 	if response['total_count'] > 0:
 		test = re.compile("%s(-.+\.zip|\.zip)$" % addon_id, re.IGNORECASE)
@@ -281,7 +281,7 @@ def find_zip(user, addon_id):
 
 def browse_repository(url):
 	import requests, zipfile, StringIO
-	from commoncore.BeautifulSoup import BeautifulSoup
+	from commoncore.bs4 import BeautifulSoup
 	r = requests.get(url, stream=True)
 	zip_ref = zipfile.ZipFile(StringIO.StringIO(r.content))
 	for f in zip_ref.namelist():
@@ -294,7 +294,7 @@ def browse_repository(url):
 
 def install_feed(url, local=False):
 	import requests, zipfile, StringIO
-	from commoncore.BeautifulSoup import BeautifulSoup
+	from commoncore.bs4 import BeautifulSoup
 	if local:
 			r = kodi.vfs.open(url, "r")
 			zip_ref = zipfile.ZipFile(r.read())
@@ -310,7 +310,7 @@ def install_feed(url, local=False):
 
 def batch_installer(url, local=False):
 	import requests, zipfile, StringIO
-	from commoncore.BeautifulSoup import BeautifulSoup
+	from commoncore.bs4 import BeautifulSoup
 	if local:
 			r = kodi.vfs.open(url, "r")
 			zip_ref = zipfile.ZipFile(StringIO.StringIO(r.read()))

@@ -17,16 +17,15 @@
 import json
 import xbmc
 import xbmcgui
-import downloader
 import zipfile
 import re
 import shutil
 import requests
 from libs.database import DB
 from libs import github
+from . import downloader
 from commoncore import kodi
-from commoncore.BeautifulSoup import BeautifulSoup
-from commoncore.enum import enum
+from commoncore.bs4 import BeautifulSoup
 
 
 class installerException(Exception):
@@ -35,7 +34,7 @@ class installerException(Exception):
 tva_user = 'tvaddonsco'
 
 # Define source types
-SOURCES = enum(DEFAULT=0, REPO=1, ZIP=2)
+SOURCES = kodi.enum(DEFAULT=0, REPO=1, ZIP=2)
 
 def update_addons(quiet=True):
 	from distutils.version import LooseVersion
