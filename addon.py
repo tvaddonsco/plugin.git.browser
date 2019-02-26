@@ -107,7 +107,6 @@ def search():
 	
 	@dispatcher.register('addonid')
 	def addonid():
-		from commoncore.core import highlight
 		from libs.github import version_sort
 		rtype = 'api'
 		results = github.search(q, 'id')
@@ -118,7 +117,7 @@ def search():
 			menu = kodi.ContextMenu()
 			r = i['repository']
 			full_name = r['full_name']
-			title = highlight("%s/%s" % (full_name, i['name']), q, 'yellow')
+			title = kodi.highlight("%s/%s" % (full_name, i['name']), q, 'yellow')
 			url = get_download_url(full_name, i['path'])
 			menu.add("Search Username", {'mode': 'search', 'type': 'username', 'query': r['owner']['login']})
 			kodi.add_menu_item({'mode': 'github_install', "url": url, "file": i['name'], "full_name": full_name}, {'title': title}, menu=menu, icon='null')
@@ -127,14 +126,13 @@ def search():
 
 @kodi.register('search_filter')
 def search_filter():
-	from commoncore.core import format_color
 	options = display =['None', 'Repository', 'Feed', 'Music Plugin', 'Video Plugin', 'Script']
 	filter = kodi.get_property('search.filter')
 	if filter in options:
 		index = options.index(filter)
-		display[index] = format_color(display[index], 'yellow')
+		display[index] = kodi.format_color(display[index], 'yellow')
 	else:
-		display[0] = format_color(display[0], 'yellow')
+		display[0] = kodi.format_color(display[0], 'yellow')
 		
 	c = kodi.dialog_select("Filter Results by:", display)
 	if c is not False:
@@ -323,7 +321,8 @@ def feed_list():
 			title = "%s: %s" % (name, desc)
 			kodi.add_menu_item({'mode': 'search', 'type': 'username', 'query': username}, {'title': title, 'plot': desc}, icon='null')
 		kodi.eod()	
-	except:pass
+	except Exception as e:
+		kodi.log(e)
 	
 @kodi.register('github_install')
 def github_install():

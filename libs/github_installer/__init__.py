@@ -25,7 +25,8 @@ from libs.database import DB
 from libs import github
 from . import downloader
 from commoncore import kodi
-from commoncore.bs4 import BeautifulSoup
+from commoncore.beautifulsoup import BeautifulSoup
+	
 
 
 class installerException(Exception):
