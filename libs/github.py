@@ -14,7 +14,6 @@
 	You should have received a copy of the GNU General Public License
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 *'''
-
 import re
 import math
 import json
@@ -22,7 +21,6 @@ import base64
 import random
 import requests
 import traceback
-from commoncore.core import highlight
 from commoncore import kodi
 from commoncore import dom_parser
 from commoncore.baseapi import DB_CACHABLE_API as CACHABLE_API, EXPIRE_TIMES
@@ -39,7 +37,6 @@ class githubException(Exception):
 default_branch = 'master'
 base_url = "https://api.github.com"
 content_url = "https://raw.githubusercontent.com/%s/%s/%s"
-#content_url2 = "https://raw.githubusercontent.com/%s/ghmaster/%s"
 master_url = "https://github.com/%s/%s/archive/master.zip"
 page_limit = 100
 
@@ -160,10 +157,12 @@ def get_download_url(full_name, path):
 	url = content_url % (full_name, default_branch, path)
 	if test_url(url): return url
 	# didn't work, need to get the branch name
-	response = requests.get("https://api.github.com/repos/%s/branches" % full_name)
-	branch = response.json()[0]['name']
-	url = content_url % (full_name, branch, path)
-	return url
+	response = requests.get("https://api.github.com/repos/%s/branches" % full_name).json()
+	for attempt in response:
+		branch = attempt['name']
+		url = content_url % (full_name, branch, path)
+		if test_url(url): return url
+	raise githubException('No available download link')
 
 	
 
@@ -280,10 +279,15 @@ def find_zip(user, addon_id):
 			
 
 def browse_repository(url):
-	import requests, zipfile, StringIO
-	from commoncore.bs4 import BeautifulSoup
+	import requests, zipfile
+	from commoncore.beautifulsoup import BeautifulSoup
 	r = requests.get(url, stream=True)
-	zip_ref = zipfile.ZipFile(StringIO.StringIO(r.content))
+	if kodi.strings.PY2:
+		import StringIO
+		zip_ref = zipfile.ZipFile(StringIO.StringIO(r.content))
+	else:
+		from io import BytesIO
+		zip_ref = zipfile.ZipFile(BytesIO(r.content))
 	for f in zip_ref.namelist():
 		if f.endswith('addon.xml'):
 			xml = BeautifulSoup(zip_ref.read(f))
@@ -293,14 +297,22 @@ def browse_repository(url):
 	return False
 
 def install_feed(url, local=False):
-	import requests, zipfile, StringIO
-	from commoncore.bs4 import BeautifulSoup
+	import requests, zipfile
+	if kodi.strings.PY2:
+		from StringIO import StringIO as byte_reader
+	else:
+		from io import BytesIO as byte_reader
+		
+	from commoncore.beautifulsoup import BeautifulSoup
 	if local:
 			r = kodi.vfs.open(url, "r")
-			zip_ref = zipfile.ZipFile(r.read())
+			if kodi.strings.PY2:
+				zip_ref = zipfile.ZipFile(byte_reader(r.read()))
+			else:
+				zip_ref = zipfile.ZipFile(byte_reader(r.readBytes()))
 	else:
 		r = requests.get(url, stream=True)
-		zip_ref = zipfile.ZipFile(StringIO.StringIO(r.content))
+		zip_ref = zipfile.ZipFile(byte_reader(r.content))
 
 	for f in zip_ref.namelist():
 		if f.endswith('.xml'):
@@ -309,14 +321,21 @@ def install_feed(url, local=False):
 	return False
 
 def batch_installer(url, local=False):
-	import requests, zipfile, StringIO
-	from commoncore.bs4 import BeautifulSoup
+	import requests, zipfile
+	if kodi.strings.PY2:
+		from StringIO import StringIO as byte_reader
+	else:
+		from io import BytesIO as byte_reader
+	from commoncore.beautifulsoup import BeautifulSoup
 	if local:
 			r = kodi.vfs.open(url, "r")
-			zip_ref = zipfile.ZipFile(StringIO.StringIO(r.read()))
+			if kodi.strings.PY2:
+				zip_ref = zipfile.ZipFile(byte_reader(r.read()))
+			else:
+				zip_ref = zipfile.ZipFile(byte_reader(r.readBytes()))
 	else:
 		r = requests.get(url, stream=True)
-		zip_ref = zipfile.ZipFile(StringIO.StringIO(r.content))
+		zip_ref = zipfile.ZipFile(byte_reader(r.content))
 	xml = BeautifulSoup(zip_ref.read('manifest.xml'))
 	return xml, zip_ref
 

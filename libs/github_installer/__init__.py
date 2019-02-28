@@ -231,6 +231,9 @@ class GitHub_Installer():
 				kodi.raise_error("", "Unmet Dependencies:", "See log or install manually", ','.join(self.unmet_addons))
 			kodi.log("Unmet Dependencies for addon install: %s" % addon_id)  # % self.addon_id)
 			kodi.log(','.join(self.unmet_addons))
+			inserts = [(a, ) for a in self.unmet_addons]
+			DB.execute_many("INSERT INTO failed_depends(addon_id) VALUES(?)", inserts)
+			DB.commit()
 		self.completed.append(addon_id)	
 
 	def install_addon(self, addon_id, url, full_name, master):

@@ -32,6 +32,7 @@ def main():
 
 @kodi.register('settings_menu')
 def settings_menu():
+	kodi.add_menu_item({'mode': 'dependency_search'}, {'title': "Search for missing dependencies"}, icon='search_failed.png')
 	kodi.add_menu_item({'mode': 'update_addons'}, {'title': "Check for Updates [COLOR red](Advanced)[/COLOR]"}, icon='update.png', visible=kodi.get_setting('enable_updates') == 'true')
 	kodi.add_menu_item({'mode': 'addon_settings'}, {'title': "Addon Settings"}, icon='settings.png')
 	kodi.eod()
@@ -51,7 +52,20 @@ def search_menu():
 			menu.add('Delete from search history', {"mode": "history_delete", "id": result['search_id']})
 			kodi.add_menu_item({'mode': 'search', 'type': kodi.arg('type'), 'query': result['query']}, {'title': result['query']}, menu=menu, icon='null')
 	kodi.eod()
-	
+
+@kodi.register('dependency_search')
+def dependency_search():
+	from libs.database import DB
+	results = DB.query("SELECT addon_id FROM failed_depends WHERE resolved=0 ORDER BY addon_id ASC")
+	if results is not None:
+		for result in results:
+			if kodi.has_addon(result[0]):
+				DB.execute("UPDATE failed_depends SET resolved=1 WHERE addon_id=?", [result[0]])
+				DB.commit()
+				continue
+			kodi.add_menu_item({'mode': 'search', 'type': "addonid",'query': result[0]}, {'title': result[0]}, icon='addonid.png')
+	kodi.eod()
+		
 @kodi.register('search')
 def search():
 	from commoncore.dispatcher import dispatcher
@@ -173,7 +187,7 @@ def install_feed():
 		url = kodi.arg('url')
 		xml = github.install_feed(url)
 	else:
-		url = kodi.dialog_file_browser('Select a feed file', mask='.zip')
+		url = kodi.dialog_browser('Select a feed file',type=kodi.BROWSER_TYPES.FILE, mask='.zip')
 		if not github.re_feed.search(url): return
 		xml = github.install_feed(url, True)
 	if not kodi.dialog_confirm('Install Feed?', "Click YES to proceed."): return
@@ -208,7 +222,7 @@ def install_batch():
 		url = kodi.arg('url')
 		xml, zip_ref = github.batch_installer(url)
 	else:
-		url = kodi.dialog_file_browser('Select a install file', mask='.zip')
+		url = kodi.dialog_browser('Select a install file', type=kodi.BROWSER_TYPES.FILE, mask='.zip')
 		if not github.re_installer.search(url): return
 		xml, zip_ref = github.batch_installer(url, True)
 	if not kodi.dialog_confirm('Batch Installer?', "Click YES to proceed.", "This will install a list of addons.", "Some configuration files and settings may be overwritten."): return
@@ -228,7 +242,7 @@ def install_batch():
 		username = username.text
 		addon_id = addon_id.text
 		PB.next(addon_id)
-		if not kodi.get_condition_visiblity("System.HasAddon(%s)"% addon_id):
+		if not kodi.has_addon(addon_id):
 			if PB.is_canceled(): return
 			kodi.log("Batch install " + addon_id)
 			url, filename, full_name, version = github.find_zip(username, addon_id)

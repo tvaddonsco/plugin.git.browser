@@ -20,16 +20,15 @@ import xbmcgui
 import zipfile
 import requests
 from commoncore import kodi
-from commoncore.core import format_size
 from libs.github import get_version_by_name, get_version_by_xml
 
 class downloaderException(Exception):
 	pass
 
 def format_status(cached, total, speed):
-	cached = format_size(cached)
-	total = format_size(total)
-	speed = format_size(speed, 'B/s')
+	cached = kodi.format_size(cached)
+	total = kodi.format_size(total)
+	speed = kodi.format_size(speed, 'B/s')
 	return 	"%s of %s at %s" % (cached, total, speed) 
 
 def test_url(url):
