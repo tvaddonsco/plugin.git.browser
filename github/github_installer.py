@@ -17,14 +17,13 @@
 import json
 import xbmc
 import xbmcgui
-import zipfile
 import re
 import shutil
 import requests
-from libs.database import DB
-from libs import github
+import github
 from . import downloader
 from commoncore import kodi
+from commoncore import zipfile
 from commoncore.beautifulsoup import BeautifulSoup
 	
 

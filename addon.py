@@ -16,7 +16,10 @@
 *'''
 
 
-from commoncore import kodi
+#from commoncore import kodi
+
+import github
+from github import *
 
 @kodi.register('main')
 def main():
@@ -39,15 +42,14 @@ def settings_menu():
 	
 @kodi.register('search_menu')
 def search_menu():
-	from libs.database import DB
-	menu = kodi.ContextMenu()
+	menu = kodi.context_menu()
 	menu.add('Search Filter', {"mode": "search_filter"})
 	kodi.add_menu_item({'mode': 'void'}, {'title': "[COLOR darkorange]%s[/COLOR]" % kodi.arg('title')}, icon='null', menu=menu)
 	kodi.add_menu_item({'mode': 'search', 'type': kodi.arg('type')}, {'title': "*** New Search ***"}, icon='null', menu=menu)
 	results = DB.query_assoc("SELECT search_id, query FROM search_history WHERE search_type=? ORDER BY ts DESC LIMIT 25", [kodi.arg('type')], quiet=True)
 	if results is not None:
 		for result in results:
-			menu = kodi.ContextMenu()
+			menu = kodi.context_menu()
 			menu.add('Search Filter', {"mode": "search_filter"})
 			menu.add('Delete from search history', {"mode": "history_delete", "id": result['search_id']})
 			kodi.add_menu_item({'mode': 'search', 'type': kodi.arg('type'), 'query': result['query']}, {'title': result['query']}, menu=menu, icon='null')
@@ -55,7 +57,6 @@ def search_menu():
 
 @kodi.register('dependency_search')
 def dependency_search():
-	from libs.database import DB
 	results = DB.query("SELECT addon_id FROM failed_depends WHERE resolved=0 ORDER BY addon_id ASC")
 	if results is not None:
 		for result in results:
@@ -68,10 +69,8 @@ def dependency_search():
 		
 @kodi.register('search')
 def search():
-	from commoncore.dispatcher import dispatcher
-	from libs.database import DB
-	from libs import github
-	from libs.github import get_download_url
+	#from libs import github
+	#from libs.github import get_download_url
 	q = kodi.arg('query') if kodi.arg('query') else kodi.dialog_input('Search GitHub')
 	if q in [None, False, '']: return False
 	DB.execute('REPLACE INTO search_history(search_type, query) VALUES(?,?)', [kodi.arg('type'), q])
@@ -83,8 +82,8 @@ def search():
 		response = github.find_zips(q)
 		if response is None: return
 		for r in github.sort_results(response['items']):
-			url = get_download_url(r['repository']['full_name'], r['path'])
-			menu = kodi.ContextMenu()
+			url = github.get_download_url(r['repository']['full_name'], r['path'])
+			menu = kodi.context_menu()
 			if r['is_repository']:
 				menu.add('Browse Repository Contents', {"mode": "browse_repository", "url": url, "file": r['name'], "full_name": "%s/%s" % (q, r['repository']['name'])})
 			if r['is_feed']:
@@ -106,8 +105,8 @@ def search():
 			response = github.find_zips(user)
 			if response is None: continue
 			for r in github.sort_results(response['items']):
-				url = get_download_url(r['repository']['full_name'], r['path'])
-				menu = kodi.ContextMenu()
+				url = github.get_download_url(r['repository']['full_name'], r['path'])
+				menu = kodi.context_menu()
 				if r['is_repository']:
 					menu.add('Browse Repository Contents', {"mode": "browse_repository", "url": url, "file": r['name'], "full_name": "%s/%s" % (q, r['repository']['name'])})
 				if r['is_feed']:
@@ -121,18 +120,18 @@ def search():
 	
 	@dispatcher.register('addonid')
 	def addonid():
-		from libs.github import version_sort
+		#from libs.github import version_sort
 		rtype = 'api'
 		results = github.search(q, 'id')
 		if results is None: return
-		results.sort(key=lambda x:version_sort(x['name']), reverse=True)
+		results.sort(key=lambda x:github.version_sort(x['name']), reverse=True)
 			
 		for i in results:
-			menu = kodi.ContextMenu()
+			menu = kodi.context_menu()
 			r = i['repository']
 			full_name = r['full_name']
 			title = kodi.highlight("%s/%s" % (full_name, i['name']), q, 'yellow')
-			url = get_download_url(full_name, i['path'])
+			url = github.get_download_url(full_name, i['path'])
 			menu.add("Search Username", {'mode': 'search', 'type': 'username', 'query': r['owner']['login']})
 			kodi.add_menu_item({'mode': 'github_install', "url": url, "file": i['name'], "full_name": full_name}, {'title': title}, menu=menu, icon='null')
 	dispatcher.run(kodi.arg('type'))

@@ -29,15 +29,15 @@ try:
 	from urllib.parse import urlencode
 except ImportError:
 	from urllib import urlencode
-	
-from libs.database import DB
+import github	
+from github import DB
 
 class githubException(Exception):
 	pass
+
 default_branch = 'master'
 base_url = "https://api.github.com"
 content_url = "https://raw.githubusercontent.com/%s/%s/%s"
-master_url = "https://github.com/%s/%s/archive/master.zip"
 page_limit = 100
 
 def get_token():
@@ -60,9 +60,9 @@ def get_token():
 
 SORT_ORDER = kodi.enum(REPO=0, FEED=1, INSTALLER=2, PLUGIN=3, PROGRAM=4, SKIN=5, SERVICE=6, SCRIPT=7, OTHER=100)
 
-class GitHubWeb(CACHABLE_API):
-	default_return_type = 'text'
-	base_url = "https://github.com/search"
+#class GitHubWeb(CACHABLE_API):
+#	default_return_type = 'text'
+#	base_url = "https://github.com/search"
 
 class GitHubAPI(CACHABLE_API):
 	default_return_type = 'json'
@@ -141,6 +141,7 @@ re_program = re.compile("^(program\.)|(plugin\.program)", re.IGNORECASE)
 re_skin = re.compile("^skin\.", re.IGNORECASE)
 re_version = re.compile("-([^zip]+)\.zip$", re.IGNORECASE)
 re_split_version = re.compile("^(.+?)-([^zip]+)\.zip$")
+
 def is_zip(filename):
 	return filename.lower().endswith('.zip')
 
@@ -153,18 +154,15 @@ def split_version(name):
 		return False, False
 
 def get_download_url(full_name, path):
-	from .github_installer.downloader import test_url
 	url = content_url % (full_name, default_branch, path)
-	if test_url(url): return url
+	if github.test_url(url): return url
 	# didn't work, need to get the branch name
 	response = requests.get("https://api.github.com/repos/%s/branches" % full_name).json()
 	for attempt in response:
 		branch = attempt['name']
 		url = content_url % (full_name, branch, path)
-		if test_url(url): return url
+		if github.test_url(url): return url
 	raise githubException('No available download link')
-
-	
 
 def get_version_by_name(name):
 	version = re_version.search(name)
@@ -179,6 +177,13 @@ def get_version_by_xml(xml):
 		version = addon['version']
 	except:
 		return False	
+
+def version_sort(name):
+	v = re_version.search(name)
+	if v:
+		return LooseVersion(v.group(1))
+	else: 
+		return LooseVersion('0.0.0')
 
 def sort_results(results, limit=False):
 	def highest_versions(results):
@@ -208,12 +213,7 @@ def sort_results(results, limit=False):
 	else:
 		return sorted(results, key=lambda x:sort_results(x['name']), reverse=False)
 
-def version_sort(name):
-	v = re_version.search(name)
-	if v:
-		return LooseVersion(v.group(1))
-	else: 
-		return LooseVersion('0.0.0')
+
 
 def limit_versions(results):
 	final = []
@@ -241,8 +241,8 @@ def search(q, method=False):
 	else:
 		return GH.request("/search/repositories", query={"per_page": page_limit, "q": q}, cache_limit=EXPIRE_TIMES.HOUR)
 
-def find_xml(full_name):
-	return GitHubWeb().request(content_url % (full_name, default_branch, 'addon.xml'), append_base=False)
+#def find_xml(full_name):
+#	return GitHubWeb().request(content_url % (full_name, default_branch, 'addon.xml'), append_base=False)
 
 def find_zips(user, repo=None):
 	filters = {'Repository': '*repository*.zip', 'Feed': '*gitbrowser.feed*.zip', 'Installer': '*gitbrowser.installer*.zip', 'Music Plugin': '*plugin.audio*.zip', 'Video Plugin': '*plugin.video*.zip', 'Script': '*script*.zip'}
@@ -279,7 +279,8 @@ def find_zip(user, addon_id):
 			
 
 def browse_repository(url):
-	import requests, zipfile
+	import requests
+	from commoncore import zipfile
 	from commoncore.beautifulsoup import BeautifulSoup
 	r = requests.get(url, stream=True)
 	if kodi.strings.PY2:
@@ -297,7 +298,8 @@ def browse_repository(url):
 	return False
 
 def install_feed(url, local=False):
-	import requests, zipfile
+	import requests
+	from commoncore import zipfile
 	if kodi.strings.PY2:
 		from StringIO import StringIO as byte_reader
 	else:
@@ -321,7 +323,8 @@ def install_feed(url, local=False):
 	return False
 
 def batch_installer(url, local=False):
-	import requests, zipfile
+	import requests
+	from commoncore import zipfile
 	if kodi.strings.PY2:
 		from StringIO import StringIO as byte_reader
 	else:
@@ -339,6 +342,6 @@ def batch_installer(url, local=False):
 	xml = BeautifulSoup(zip_ref.read('manifest.xml'))
 	return xml, zip_ref
 
-def get_download(url):
-	r = GH.request(url, append_base=False)
-	return r['download_url']
+#def get_download(url):
+#	r = GH.request(url, append_base=False)
+#	return r['download_url']
