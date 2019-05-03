@@ -25,7 +25,7 @@ from . import downloader
 from commoncore import kodi
 from commoncore import zipfile
 from commoncore.beautifulsoup import BeautifulSoup
-	
+from database import DB	
 
 
 class installerException(Exception):
