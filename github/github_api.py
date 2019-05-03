@@ -260,7 +260,7 @@ def find_zips(user, repo=None):
 def find_zip(user, addon_id):
 	results = []
 	response = GH.request("/search/code", query={"q": "user:%s+filename:%s*.zip" % (user, addon_id)}, cache_limit=EXPIRE_TIMES.HOUR)
-	from .github_installer.downloader import test_url
+	from .github.downloader import test_url
 	if response is None: return False, False, False
 	if response['total_count'] > 0:
 		test = re.compile("%s(-.+\.zip|\.zip)$" % addon_id, re.IGNORECASE)

@@ -305,8 +305,8 @@ def feed_list():
 		base_url = ''
 		default_return_type = 'xml'
 	try:
-		xml = FeedAPI().request(kodi.arg('url'), cache_limit=EXPIRE_TIMES.EIGHTHOURS)
-		for r in xml.findAll('repository'):
+		xml = FeedAPI().request(kodi.arg('url')) #, cache_limit=EXPIRE_TIMES.EIGHTHOURS)
+		for r in xml.iter('repository'):
 			name = r.find('name').text
 			username = r.find('username').text
 			desc = r.find('description').text
