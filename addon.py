@@ -209,6 +209,7 @@ def install_batch():
 	if not xml: return
 	# Install each addon as instructed
 	installed_list = []
+	failed_list = []
 	count = 0
 	for a in xml.findAll('addon'): 
 		count +=1 
@@ -226,8 +227,11 @@ def install_batch():
 			if PB.is_canceled(): return
 			kodi.log("Batch install " + addon_id)
 			url, filename, full_name, version = github.find_zip(username, addon_id)
-			installed_list += github_installer.GitHub_Installer(addon_id, url, full_name, kodi.vfs.join("special://home", "addons"), quiet=True, batch=True, installed_list=installed_list).installed_list
-			kodi.sleep(1000)
+			if url:
+				installed_list += github_installer.GitHub_Installer(addon_id, url, full_name, kodi.vfs.join("special://home", "addons"), quiet=True, batch=True, installed_list=installed_list).installed_list
+				kodi.sleep(1000)
+			else:
+				failed_list.append(addon_id)
 
 	# Look for config files.
 	# Need to add error checking for missing config files
@@ -272,7 +276,10 @@ def install_batch():
 
 	# Now clean up
 	zip_ref.close()
-	PB.close()	
+	PB.close()
+	if len(failed_list):
+		kodi.dialog_ok("Batch Error", "One or more Addons failed to install", "See log for list")
+		kodi.log("Failed list: %s" % ",".join(failed_list))
 	r = kodi.dialog_confirm(kodi.get_name(), 'Click Continue to install more addons or', 'Restart button to finalize addon installation', yes='Restart', no='Continue')
 	if r:
 		import sys
