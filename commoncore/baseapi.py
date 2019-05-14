@@ -209,7 +209,6 @@ class CACHABLE_API(BASE_API):
 			cache_hash = hashlib.md5(kodi.stringify(url)).hexdigest()
 			cache_file = vfs.join(CACHE, cache_hash)
 			response = kodi.bytefy(response)
-			kodi.log(type(response))
 			compressed = zlib.compress(response)
 			vfs.write_file(cache_file, compressed)
 			vfs.write_file(cache_file+'.ts', str(cache_limit))
