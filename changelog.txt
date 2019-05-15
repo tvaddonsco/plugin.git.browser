@@ -1,3 +1,7 @@
+v1.2.1
+- Correct for currupt batch installer files
+- Fixed 32 bit zipile corruption
+
 v1.1.6
 - Fixed error where  older addon version was retrieved
 - Fixed dependency retrieval error
