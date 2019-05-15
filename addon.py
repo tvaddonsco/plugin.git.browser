@@ -15,8 +15,8 @@
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 *'''
 
-
-from commoncore import kodi
+import github
+from github import *
 
 @kodi.register('main')
 def main():
@@ -28,36 +28,40 @@ def main():
 	kodi.add_menu_item({'mode': 'installer_menu'}, {'title': "Batch Installers"}, icon='batch_installer.png') 
 	kodi.add_menu_item({'mode': 'about'}, {'title': "About GitHub Installer"}, icon='about.png')
 	kodi.add_menu_item({'mode': 'settings_menu'}, {'title': "Tools and Settings"}, icon='settings.png')
-	kodi.eod()
 
 @kodi.register('settings_menu')
 def settings_menu():
+	kodi.add_menu_item({'mode': 'dependency_search'}, {'title': "Search for missing dependencies"}, icon='search_failed.png')
 	kodi.add_menu_item({'mode': 'update_addons'}, {'title': "Check for Updates [COLOR red](Advanced)[/COLOR]"}, icon='update.png', visible=kodi.get_setting('enable_updates') == 'true')
 	kodi.add_menu_item({'mode': 'addon_settings'}, {'title': "Addon Settings"}, icon='settings.png')
-	kodi.eod()
 	
 @kodi.register('search_menu')
 def search_menu():
-	from libs.database import DB
-	menu = kodi.ContextMenu()
+	menu = kodi.context_menu()
 	menu.add('Search Filter', {"mode": "search_filter"})
 	kodi.add_menu_item({'mode': 'void'}, {'title': "[COLOR darkorange]%s[/COLOR]" % kodi.arg('title')}, icon='null', menu=menu)
 	kodi.add_menu_item({'mode': 'search', 'type': kodi.arg('type')}, {'title': "*** New Search ***"}, icon='null', menu=menu)
 	results = DB.query_assoc("SELECT search_id, query FROM search_history WHERE search_type=? ORDER BY ts DESC LIMIT 25", [kodi.arg('type')], quiet=True)
 	if results is not None:
 		for result in results:
-			menu = kodi.ContextMenu()
+			menu = kodi.context_menu()
 			menu.add('Search Filter', {"mode": "search_filter"})
 			menu.add('Delete from search history', {"mode": "history_delete", "id": result['search_id']})
 			kodi.add_menu_item({'mode': 'search', 'type': kodi.arg('type'), 'query': result['query']}, {'title': result['query']}, menu=menu, icon='null')
-	kodi.eod()
-	
+
+@kodi.register('dependency_search')
+def dependency_search():
+	results = DB.query("SELECT addon_id FROM failed_depends WHERE resolved=0 ORDER BY addon_id ASC")
+	if results is not None:
+		for result in results:
+			if kodi.has_addon(result[0]):
+				DB.execute("UPDATE failed_depends SET resolved=1 WHERE addon_id=?", [result[0]])
+				DB.commit()
+				continue
+			kodi.add_menu_item({'mode': 'search', 'type': "addonid",'query': result[0]}, {'title': result[0]}, icon='addonid.png')
+		
 @kodi.register('search')
 def search():
-	from commoncore.dispatcher import dispatcher
-	from libs.database import DB
-	from libs import github
-	from libs.github import get_download_url
 	q = kodi.arg('query') if kodi.arg('query') else kodi.dialog_input('Search GitHub')
 	if q in [None, False, '']: return False
 	DB.execute('REPLACE INTO search_history(search_type, query) VALUES(?,?)', [kodi.arg('type'), q])
@@ -69,8 +73,8 @@ def search():
 		response = github.find_zips(q)
 		if response is None: return
 		for r in github.sort_results(response['items']):
-			url = get_download_url(r['repository']['full_name'], r['path'])
-			menu = kodi.ContextMenu()
+			url = github.get_download_url(r['repository']['full_name'], r['path'])
+			menu = kodi.context_menu()
 			if r['is_repository']:
 				menu.add('Browse Repository Contents', {"mode": "browse_repository", "url": url, "file": r['name'], "full_name": "%s/%s" % (q, r['repository']['name'])})
 			if r['is_feed']:
@@ -92,8 +96,8 @@ def search():
 			response = github.find_zips(user)
 			if response is None: continue
 			for r in github.sort_results(response['items']):
-				url = get_download_url(r['repository']['full_name'], r['path'])
-				menu = kodi.ContextMenu()
+				url = github.get_download_url(r['repository']['full_name'], r['path'])
+				menu = kodi.context_menu()
 				if r['is_repository']:
 					menu.add('Browse Repository Contents', {"mode": "browse_repository", "url": url, "file": r['name'], "full_name": "%s/%s" % (q, r['repository']['name'])})
 				if r['is_feed']:
@@ -107,34 +111,30 @@ def search():
 	
 	@dispatcher.register('addonid')
 	def addonid():
-		from commoncore.core import highlight
-		from libs.github import version_sort
 		rtype = 'api'
 		results = github.search(q, 'id')
 		if results is None: return
-		results.sort(key=lambda x:version_sort(x['name']), reverse=True)
+		results.sort(key=lambda x:github.version_sort(x['name']), reverse=True)
 			
 		for i in results:
-			menu = kodi.ContextMenu()
+			menu = kodi.context_menu()
 			r = i['repository']
 			full_name = r['full_name']
-			title = highlight("%s/%s" % (full_name, i['name']), q, 'yellow')
-			url = get_download_url(full_name, i['path'])
+			title = kodi.highlight("%s/%s" % (full_name, i['name']), q, 'yellow')
+			url = github.get_download_url(full_name, i['path'])
 			menu.add("Search Username", {'mode': 'search', 'type': 'username', 'query': r['owner']['login']})
 			kodi.add_menu_item({'mode': 'github_install', "url": url, "file": i['name'], "full_name": full_name}, {'title': title}, menu=menu, icon='null')
 	dispatcher.run(kodi.arg('type'))
-	kodi.eod()
 
-@kodi.register('search_filter')
+@kodi.register('search_filter', False)
 def search_filter():
-	from commoncore.core import format_color
 	options = display =['None', 'Repository', 'Feed', 'Music Plugin', 'Video Plugin', 'Script']
 	filter = kodi.get_property('search.filter')
 	if filter in options:
 		index = options.index(filter)
-		display[index] = format_color(display[index], 'yellow')
+		display[index] = kodi.format_color(display[index], 'yellow')
 	else:
-		display[0] = format_color(display[0], 'yellow')
+		display[0] = kodi.format_color(display[0], 'yellow')
 		
 	c = kodi.dialog_select("Filter Results by:", display)
 	if c is not False:
@@ -145,7 +145,6 @@ def search_filter():
 
 @kodi.register('feed_menu')
 def feed_menu():
-	from libs.database import DB
 	kodi.add_menu_item({'mode': 'install_local_feed'}, {'title': "*** Local Search Feed File ***"}, icon='install_feed_local.png')
 	#kodi.add_menu_item({'mode': 'search', 'query': 'gitbrowser.feed', 'type': 'addonid'}, {'title': "*** Search for Feeds ***"}, icon='null')
 	feeds = DB.query_assoc("SELECT feed_id, name, url, enabled FROM feed_subscriptions")
@@ -158,24 +157,20 @@ def feed_menu():
 		else: title = name
 		menu.add('Delete Feed', {"mode": "delete_feed", "title": title, "id": feed['feed_id']})
 		kodi.add_menu_item({'mode': 'list_feed', 'url': feed['url']}, {'title': title}, menu=menu, icon='null')
-	kodi.eod()
 
 @kodi.register('installer_menu')
 def installer_menu():
 	kodi.add_menu_item({'mode': 'browse_local'}, {'title': "*** Install From Local File ***"}, icon='install_batch_local.png')
 	#kodi.add_menu_item({'mode': 'search', 'query': 'gitbrowser.installer', 'type': 'addonid'}, {'title': "*** Search for Batch Installers ***"}, icon='null')
-	kodi.eod()
 	
 
-@kodi.register(['install_feed', 'install_local_feed'])
+@kodi.register(['install_feed', 'install_local_feed'], False)
 def install_feed():
-	from libs.database import DB
-	from libs import github
 	if kodi.mode == 'install_feed':
 		url = kodi.arg('url')
 		xml = github.install_feed(url)
 	else:
-		url = kodi.dialog_file_browser('Select a feed file', mask='.zip')
+		url = kodi.dialog_browser('Select a feed file',type=kodi.BROWSER_TYPES.FILE, mask='.zip')
 		if not github.re_feed.search(url): return
 		xml = github.install_feed(url, True)
 	if not kodi.dialog_confirm('Install Feed?', "Click YES to proceed."): return
@@ -193,7 +188,6 @@ def install_feed():
 		kodi.notify("Install failed",'Invalid Format.')	
 
 def feed_count():
-	from libs.database import DB
 	try:
 		count = DB.query("SELECT count(1) FROM feed_subscriptions")[0][0]
 	except:
@@ -201,22 +195,21 @@ def feed_count():
 	return count
 
 
-@kodi.register(['install_batch', 'browse_local'])
+@kodi.register(['install_batch', 'browse_local'], False)
 def install_batch():
 	import xbmcgui
-	from libs import github
-	from libs import github_installer
 	if kodi.mode == 'install_batch':
 		url = kodi.arg('url')
 		xml, zip_ref = github.batch_installer(url)
 	else:
-		url = kodi.dialog_file_browser('Select a install file', mask='.zip')
+		url = kodi.dialog_browser('Select a install file', type=kodi.BROWSER_TYPES.FILE, mask='.zip')
 		if not github.re_installer.search(url): return
 		xml, zip_ref = github.batch_installer(url, True)
 	if not kodi.dialog_confirm('Batch Installer?', "Click YES to proceed.", "This will install a list of addons.", "Some configuration files and settings may be overwritten."): return
 	if not xml: return
 	# Install each addon as instructed
 	installed_list = []
+	failed_list = []
 	count = 0
 	for a in xml.findAll('addon'): 
 		count +=1 
@@ -230,12 +223,15 @@ def install_batch():
 		username = username.text
 		addon_id = addon_id.text
 		PB.next(addon_id)
-		if not kodi.get_condition_visiblity("System.HasAddon(%s)"% addon_id):
+		if not kodi.has_addon(addon_id):
 			if PB.is_canceled(): return
 			kodi.log("Batch install " + addon_id)
 			url, filename, full_name, version = github.find_zip(username, addon_id)
-			installed_list += github_installer.GitHub_Installer(addon_id, url, full_name, kodi.vfs.join("special://home", "addons"), quiet=True, batch=True, installed_list=installed_list).installed_list
-			kodi.sleep(1000)
+			if url:
+				installed_list += github_installer.GitHub_Installer(addon_id, url, full_name, kodi.vfs.join("special://home", "addons"), quiet=True, batch=True, installed_list=installed_list).installed_list
+				kodi.sleep(1000)
+			else:
+				failed_list.append(addon_id)
 
 	# Look for config files.
 	# Need to add error checking for missing config files
@@ -280,7 +276,10 @@ def install_batch():
 
 	# Now clean up
 	zip_ref.close()
-	PB.close()	
+	PB.close()
+	if len(failed_list):
+		kodi.dialog_ok("Batch Error", "One or more Addons failed to install", "See log for list")
+		kodi.log("Failed list: %s" % ",".join(failed_list))
 	r = kodi.dialog_confirm(kodi.get_name(), 'Click Continue to install more addons or', 'Restart button to finalize addon installation', yes='Restart', no='Continue')
 	if r:
 		import sys
@@ -293,17 +292,15 @@ def install_batch():
 	
 @kodi.register('new_feed')
 def new_feed():
-	from libs.database import DB
 	url = kodi.dialog_input('Feed URL')
 	if not url: return
 	DB.execute("INSERT INTO feed_subscriptions(url) VALUES(?)", [url])
 	DB.commit()
 	kodi.refresh()
 
-@kodi.register('delete_feed')
+@kodi.register('delete_feed', False)
 def delete_feed():
 	if not kodi.dialog_confirm('Delete Feed?', kodi.arg('title'), "Click YES to proceed."): return
-	from libs.database import DB
 	DB.execute("DELETE FROM feed_subscriptions WHERE feed_id=?", [kodi.arg('id')])
 	DB.commit()
 	kodi.refresh()
@@ -315,21 +312,21 @@ def feed_list():
 		base_url = ''
 		default_return_type = 'xml'
 	try:
-		xml = FeedAPI().request(kodi.arg('url'), cache_limit=EXPIRE_TIMES.EIGHTHOURS)
-		for r in xml.findAll('repository'):
+		xml = FeedAPI().request(kodi.arg('url')) #, cache_limit=EXPIRE_TIMES.EIGHTHOURS)
+		for r in xml.iter('repository'):
 			name = r.find('name').text
 			username = r.find('username').text
 			desc = r.find('description').text
 			title = "%s: %s" % (name, desc)
 			kodi.add_menu_item({'mode': 'search', 'type': 'username', 'query': username}, {'title': title, 'plot': desc}, icon='null')
 		kodi.eod()	
-	except:pass
+	except Exception as e:
+		kodi.log(e)
 	
-@kodi.register('github_install')
+@kodi.register('github_install', False)
 def github_install():
 	import re
-	from libs import github_installer
-	from libs import github
+	from github import github_installer
 	c = kodi.dialog_confirm("Confirm Install", kodi.arg('file'), yes="Install", no="Cancel")
 	if not c: return
 	addon_id = re.sub("-[\d\.]+zip$", "", kodi.arg('file'))
@@ -343,7 +340,7 @@ def github_install():
 		else:
 			xbmc.executebuiltin('ShutDown')
 
-@kodi.register('about')
+@kodi.register('about', False)
 def about():
 	try:
 		import xbmc
@@ -375,9 +372,8 @@ def show_about():
 		interval -= 1	
 	kodi.set_setting('last_about', interval)
 
-@kodi.register('browse_repository')
+@kodi.register('browse_repository', False)
 def browse_repository():
-	from libs import github
 	xml = github.browse_repository(kodi.arg('url'))
 	heading = "%s/%s" % (kodi.arg('full_name'), kodi.arg('file'))
 	options = []
@@ -388,17 +384,16 @@ def browse_repository():
 		kodi.dialog_select(heading, sorted(options))
 
 
-@kodi.register('history_delete')
+@kodi.register('history_delete', False)
 def history_delete():
 	if not kodi.arg('id'): return
-	from libs.database import DB
 	DB.execute("DELETE FROM search_history WHERE search_id=?", [kodi.arg('id')])
 	DB.commit()	
 	kodi.refresh()
 
-@kodi.register('update_addons')
+@kodi.register('update_addons', False)
 def update_addons():
-	from libs import github_installer
+	from github import github_installer
 	quiet = True if kodi.arg('quiet') == 'quiet' else False
 	if not quiet:
 		c = kodi.dialog_confirm("Confirm Update", "Check for updates", yes="Update", no="Cancel")

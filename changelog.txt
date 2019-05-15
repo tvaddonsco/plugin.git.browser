@@ -1,3 +1,7 @@
+v1.2.1
+- Correct for currupt batch installer files
+- Fixed 32 bit zipile corruption
+
 v1.1.7
 - Kodi 18 compatibility
 

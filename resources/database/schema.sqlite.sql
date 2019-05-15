@@ -46,3 +46,12 @@ CREATE TABLE IF NOT EXISTS "feed_subscriptions" (
 
 INSERT INTO feed_subscriptions ("name", "url", "enabled") VALUES ('TV ADDONS Library', 'http://indigo.tvaddons.co/installer/tva_english.xml', '1');
 
+/* Begin Version 3 */;
+
+CREATE TABLE IF NOT EXISTS "failed_depends" ( 
+	"fail_id" INTEGER PRIMARY KEY AUTOINCREMENT, 
+	"addon_id" TEXT, "source" TEXT,
+	"resolved" INTEGER DEFAULT 0,
+	"ts" TIMESTAMP DEFAULT CURRENT_TIMESTAMP, 
+	UNIQUE (addon_id)
+);

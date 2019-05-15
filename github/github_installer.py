@@ -17,16 +17,15 @@
 import json
 import xbmc
 import xbmcgui
-import downloader
-import zipfile
 import re
 import shutil
 import requests
-from libs.database import DB
-from libs import github
+import github
+from . import downloader
 from commoncore import kodi
-from commoncore.BeautifulSoup import BeautifulSoup
-from commoncore.enum import enum
+from commoncore import zipfile
+from commoncore.beautifulsoup import BeautifulSoup
+from database import DB	
 
 
 class installerException(Exception):
@@ -35,7 +34,7 @@ class installerException(Exception):
 tva_user = 'tvaddonsco'
 
 # Define source types
-SOURCES = enum(DEFAULT=0, REPO=1, ZIP=2)
+SOURCES = kodi.enum(DEFAULT=0, REPO=1, ZIP=2)
 
 def update_addons(quiet=True):
 	from distutils.version import LooseVersion
@@ -231,6 +230,9 @@ class GitHub_Installer():
 				kodi.raise_error("", "Unmet Dependencies:", "See log or install manually", ','.join(self.unmet_addons))
 			kodi.log("Unmet Dependencies for addon install: %s" % addon_id)  # % self.addon_id)
 			kodi.log(','.join(self.unmet_addons))
+			inserts = [(a, ) for a in self.unmet_addons]
+			DB.execute_many("INSERT INTO failed_depends(addon_id) VALUES(?)", inserts)
+			DB.commit()
 		self.completed.append(addon_id)	
 
 	def install_addon(self, addon_id, url, full_name, master):

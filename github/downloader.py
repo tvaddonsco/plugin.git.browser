@@ -14,23 +14,22 @@
 	You should have received a copy of the GNU General Public License
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 *'''
-
+import sys
 import time
 import xbmcgui
-import zipfile
 import requests
 from commoncore import kodi
-from commoncore.core import format_size
-from libs.github import get_version_by_name, get_version_by_xml
+from commoncore import zipfile
+from .github_api import get_version_by_name, get_version_by_xml
 
 class downloaderException(Exception):
 	pass
 
 def format_status(cached, total, speed):
-	cached = format_size(cached)
-	total = format_size(total)
-	speed = format_size(speed, 'B/s')
-	return 	"%s of %s at %s" % (cached, total, speed) 
+	cached = kodi.format_size(cached)
+	total = kodi.format_size(total)
+	speed = kodi.format_size(speed, 'B/s')
+	return	 "%s of %s at %s" % (cached, total, speed) 
 
 def test_url(url):
 	r = requests.head(url)
@@ -41,8 +40,6 @@ def download(url, addon_id, destination, unzip=False, quiet=False):
 	filename = addon_id + '.zip'
 	r = requests.get(url, stream=True)
 	kodi.log("Download: %s" % url)
-	
-	
 	
 	if r.status_code == requests.codes.ok:
 		temp_file = kodi.vfs.join(kodi.get_profile(), "downloads")
@@ -59,6 +56,8 @@ def download(url, addon_id, destination, unzip=False, quiet=False):
 			pb.create("Downloading",filename,' ', ' ')
 		kodi.sleep(150)
 		start = time.time()
+		is_64bit = sys.maxsize > 2**32
+		if unzip and not is_64bit: zip_content = b''
 		with open(temp_file, 'wb') as f:
 			for block in r.iter_content(chunk_size=block_size):
 				if not block: break
@@ -67,6 +66,7 @@ def download(url, addon_id, destination, unzip=False, quiet=False):
 					return False
 				cached_bytes += len(block)
 				f.write(block)
+				if unzip and not is_64bit: zip_content += block
 				if total_bytes > 0:
 					delta = int(time.time() - start)
 					if delta:
@@ -78,7 +78,15 @@ def download(url, addon_id, destination, unzip=False, quiet=False):
 		
 		if not quiet: pb.close()
 		if unzip:
-			zip_ref = zipfile.ZipFile(temp_file, 'r')
+			if is_64bit:
+				zip_ref = zipfile.ZipFile(temp_file, 'r')
+			else:
+				if kodi.strings.PY2:
+					import StringIO
+					zip_ref = zipfile.ZipFile(StringIO.StringIO(zip_content))
+				else:
+					from io import BytesIO
+					zip_ref = zipfile.ZipFile(BytesIO(zip_content))
 			zip_ref.extractall(destination)
 			zip_ref.close()
 			kodi.vfs.rm(temp_file, quiet=True)

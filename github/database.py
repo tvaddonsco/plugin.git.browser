@@ -31,4 +31,4 @@ class DBI(SQLiteDatabase):
 			self.commit()
 		self.disconnect()
 
-DB = DBI(DB_FILE, quiet=True, connect=True, version=2)
+DB = DBI(DB_FILE, quiet=True, connect=True, version=3)
