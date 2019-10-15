@@ -9,7 +9,7 @@ import re
 import sys
 import warnings
 try:
-    from commoncore.beautifulsoup.bs4 import soupsieve
+    from commoncore.beautifulsoup.bs4.soupsieve import * as soupsieve
 except ImportError as e:
     soupsieve = None
     warnings.warn(
