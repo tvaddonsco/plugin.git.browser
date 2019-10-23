@@ -27,22 +27,22 @@ class UpdateService():
 	update_interval = 86400	# every 24 hours
 	def update(self):
 		if enable_updates:
-			if not self.last_run or time.time() - self.last_run > self.update_interval:	
+			if not self.last_run or time.time() - self.last_run > self.update_interval:
 				self.last_run = time.time()
 				plugin_url = kodi.build_plugin_url({"mode": "update_addons", "quiet": "quiet"}, kodi.get_id())
 				kodi.execute_url(plugin_url)
-	
+
 	def start(self):
-		
-		enable_updates 
+
+		enable_updates
 		class Monitor(xbmc.Monitor):
 			def onSettingsChanged(self):
 				global enable_updates
 				enable_updates = kodi.get_setting('enable_updates') == 'true'
 		monitor = Monitor()
 		kodi.log("Service Starting...")
-		
-		
+
+
 		if is_depricated:
 			while not xbmc.abortRequested:
 				kodi.sleep(1000)
@@ -52,10 +52,10 @@ class UpdateService():
 				if monitor.waitForAbort(10):
 					break
 				self.update()
-				
+
 		self.shutdown()
-	
-	
+
+
 	def shutdown(self):
 		kodi.log("Service Stopping...")
 

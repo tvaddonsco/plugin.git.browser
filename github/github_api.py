@@ -29,7 +29,7 @@ try:
 	from urllib.parse import urlencode
 except ImportError:
 	from urllib import urlencode
-import github	
+import github
 from github import DB
 
 class githubException(Exception):
@@ -70,7 +70,7 @@ class GitHubAPI(CACHABLE_API):
 
 	def prepair_request(self):
 		kodi.sleep(random.randint(100, 250)) # random delay 50-250 ms
-	
+
 	def build_url(self, uri, query, append_base):
 		if append_base:
 			url = self.base_url + uri
@@ -108,7 +108,7 @@ class GitHubAPI(CACHABLE_API):
 			kodi.close_busy_dialog()
 			traceback.print_stack()
 			raise githubException("Status %s: %s" % (response.status_code, response.text))
-			
+
 	def process_response(self, url, response, cache_limit, request_args, request_kwargs):
 		if 'page' in request_kwargs['query']:
 			page = request_kwargs['query']['page'] + 1
@@ -176,13 +176,13 @@ def get_version_by_xml(xml):
 		addon = xml.find('addon')
 		version = addon['version']
 	except:
-		return False	
+		return False
 
 def version_sort(name):
 	v = re_version.search(name)
 	if v:
 		return LooseVersion(v.group(1))
-	else: 
+	else:
 		return LooseVersion('0.0.0')
 
 def sort_results(results, limit=False):
@@ -195,7 +195,7 @@ def sort_results(results, limit=False):
 			last = addon_id
 			final.append(a)
 		return final
-		
+
 	def sort_results(name):
 		index = SORT_ORDER.OTHER
 		version = get_version_by_name(name)
@@ -266,16 +266,16 @@ def find_zip(user, addon_id):
 		def sort_results(name):
 			version = get_version_by_name(name)
 			return LooseVersion(version)
-			
+
 		response['items'].sort(key=lambda k: sort_results(k['name']), reverse=True)
-		
+
 		for r in response['items']:
 			if test.match(r['name']):
 				url = get_download_url(r['repository']['full_name'], r['path'])
 				version = get_version_by_name(r['path'])
 				return url, r['name'], r['repository']['full_name'], version
 	return False, False, False, False
-			
+
 
 def browse_repository(url):
 	import requests
@@ -303,7 +303,7 @@ def install_feed(url, local=False):
 		from StringIO import StringIO as byte_reader
 	else:
 		from io import BytesIO as byte_reader
-		
+
 	from commoncore.beautifulsoup import BeautifulSoup
 	if local:
 			r = kodi.vfs.open(url, "r")

@@ -29,7 +29,7 @@ def format_status(cached, total, speed):
 	cached = kodi.format_size(cached)
 	total = kodi.format_size(total)
 	speed = kodi.format_size(speed, 'B/s')
-	return	 "%s of %s at %s" % (cached, total, speed) 
+	return	 "%s of %s at %s" % (cached, total, speed)
 
 def test_url(url):
 	r = requests.head(url)
@@ -40,7 +40,7 @@ def download(url, addon_id, destination, unzip=False, quiet=False):
 	filename = addon_id + '.zip'
 	r = requests.get(url, stream=True)
 	kodi.log("Download: %s" % url)
-	
+
 	if r.status_code == requests.codes.ok:
 		temp_file = kodi.vfs.join(kodi.get_profile(), "downloads")
 		if not kodi.vfs.exists(temp_file): kodi.vfs.mkdir(temp_file, recursive=True)
@@ -75,7 +75,7 @@ def download(url, addon_id, destination, unzip=False, quiet=False):
 					if not quiet:
 						percent = int(cached_bytes * 100 / total_bytes)
 						pb.update(percent, "Downloading",filename, format_status(cached_bytes, total_bytes, bs))
-		
+
 		if not quiet: pb.close()
 		if unzip:
 			if is_64bit:
@@ -103,4 +103,3 @@ def download(url, addon_id, destination, unzip=False, quiet=False):
 		kodi.close_busy_dialog()
 		raise downloaderException(r.status_code)
 	return version
-	
