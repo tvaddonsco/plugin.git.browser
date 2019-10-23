@@ -231,10 +231,10 @@ def search(q, method=False):
 	if method=='user':
 		return GH.request("/search/repositories", query={"per_page": page_limit, "q": "user:%s" % q}, cache_limit=EXPIRE_TIMES.HOUR)
 	elif method=='title':
-		return GH.request("/search/repositories", query={"per_page": page_limit, "q": "in:name+%s" % q}, cache_limit=EXPIRE_TIMES.HOUR)
+		return GH.request("/search/repositories", query={"per_page": page_limit, "q": "in:name %s" % q}, cache_limit=EXPIRE_TIMES.HOUR)
 	elif method == 'id':
 		results = []
-		temp = GH.request("/search/code", query={"per_page": page_limit, "q": "in:path+%s.zip" % q, "access_token": get_token()}, cache_limit=EXPIRE_TIMES.HOUR)
+		temp = GH.request("/search/code", query={"per_page": page_limit, "q": "in:path %s.zip" % q, "access_token": get_token()}, cache_limit=EXPIRE_TIMES.HOUR)
 		for t in temp['items']:
 			if re_version.search(t['name']): results.append(t)
 		return results
@@ -252,14 +252,14 @@ def find_zips(user, repo=None):
 	else:
 		q = '*.zip'
 	if repo is None:
-		results = limit_versions(GH.request("/search/code", query={"per_page": page_limit, "q":"user:%s+filename:%s" % (user, q)}, cache_limit=EXPIRE_TIMES.HOUR))
+		results = limit_versions(GH.request("/search/code", query={"per_page": page_limit, "q":"user:%s filename:%s" % (user, q)}, cache_limit=EXPIRE_TIMES.HOUR))
 	else:
-		results = limit_versions(GH.request("/search/code", query={"per_page": page_limit, "q":"user:%s+repo:%s+filename:%s" % (user, repo, q)}, cache_limit=EXPIRE_TIMES.HOUR))
+		results = limit_versions(GH.request("/search/code", query={"per_page": page_limit, "q":"user:%s repo:%s filename:%s" % (user, repo, q)}, cache_limit=EXPIRE_TIMES.HOUR))
 	return results
 
 def find_zip(user, addon_id):
 	results = []
-	response = GH.request("/search/code", query={"q": "user:%s+filename:%s*.zip" % (user, addon_id)}, cache_limit=EXPIRE_TIMES.HOUR)
+	response = GH.request("/search/code", query={"q": "user:%s filename:%s*.zip" % (user, addon_id)}, cache_limit=EXPIRE_TIMES.HOUR)
 	if response is None: return False, False, False
 	if response['total_count'] > 0:
 		test = re.compile("%s(-.+\.zip|\.zip)$" % addon_id, re.IGNORECASE)
