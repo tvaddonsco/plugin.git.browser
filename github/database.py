@@ -20,7 +20,7 @@ from commoncore.database import SQLiteDatabase
 
 DB_TYPE = 'sqlite'
 DB_FILE = kodi.vfs.join(kodi.get_profile(), 'cache.db')
-	
+
 class DBI(SQLiteDatabase):
 	def _initialize(self):
 		self.connect()

@@ -25,7 +25,7 @@ from . import downloader
 from commoncore import kodi
 from commoncore import zipfile
 from commoncore.beautifulsoup import BeautifulSoup
-from database import DB	
+from database import DB
 
 
 class installerException(Exception):
@@ -62,7 +62,7 @@ def update_addons(quiet=True):
 					update_count += 1
 
 	if not quiet: kodi.close_busy_dialog()
-	if update_count > 0: 
+	if update_count > 0:
 		kodi.notify("Update complete",'Some addons may require restarting kodi.')
 	else:
 		kodi.notify("Update complete",'No updates found.')
@@ -77,14 +77,14 @@ class GitHub_Installer():
 	source_table = {}
 	completed = []
 	quiet = False
-	
+
 	def __init__(self, addon_id, url, full_name, destination, master=False, quiet=False, installed_list=[], batch=False):
 		self.installed_list = installed_list
 		self.quiet = quiet
 		self.batch=batch
 		if not self.quiet: kodi.open_busy_dialog()
 		v = kodi.get_kodi_version()
-		
+
 		# Grab a list of KNOWN addons from the database. Unfortunately Jarvis requires direct database access for the installed flag
 		if v >= 17:
 			response = kodi.kodi_json_request("Addons.GetAddons", { "installed": False, "properties": ["path", "dependencies"]})
@@ -107,19 +107,19 @@ class GitHub_Installer():
 		self._user, self.repo = full_name.split("/")
 		self._master = master
 		self._destination = destination
-		
+
 		# Add the final addon target to the sources list with type of zip
 		# Initiate install routine
 		self.install_addon(addon_id, url, full_name, master)
 
-			
+
 		completed = list(reversed(self.completed))
 		if not quiet:
 			pb = kodi.ProgressBar()
 			pb.new('Enabling Addons', len(completed)+1)
 			pb.update_subheading('Building Addon List')
 		kodi.run_command("XBMC.UpdateLocalAddons()")
-		kodi.sleep(500)	
+		kodi.sleep(500)
 		for addon_id in completed:
 			if not quiet:
 				#percent = 100* (completed.index(addon_id) / len(completed))
@@ -127,23 +127,23 @@ class GitHub_Installer():
 				pb.next(addon_id)
 				kodi.sleep(100)
 			self.enable_addon(addon_id)
-		
+
 		if not quiet: pb.next("Looking for Updates", "")
 		kodi.sleep(500)
 		kodi.run_command('XBMC.UpdateAddonRepos')
-		
-		# Enable installed addons	
-		if not self.quiet: 
+
+		# Enable installed addons
+		if not self.quiet:
 			pb.close()
 			kodi.close_busy_dialog()
 			if self.install_error:
 				kodi.notify("Install failed", self._addon_id)
-			else:		
+			else:
 				kodi.notify("Install complete", self._addon_id)
 
 	def build_dependency_list(self, addon_id, url, full_name, master):
 		#if test in ['xbmc.python', 'xbmc.gui'] or kodi.get_condition_visiblity('System.HasAddon(%s)' % addon_id) == 1: return True
-		if addon_id in self.installed_list: 
+		if addon_id in self.installed_list:
 			kodi.log('Dependency is already installed: %s' % addon_id)
 			return True
 		user, repo = full_name.split("/")
@@ -158,12 +158,12 @@ class GitHub_Installer():
 			kodi.vfs.join(src_file, "addon.xml")
 			xml = kodi.vfs.read_file(kodi.vfs.join(src_file, "addon.xml"), soup=True)
 			self.save_source(addon_id, {"type": SOURCES.ZIP, "url": url, "user": user, "repo": repo, "version": version})
-			
+
 		for dep in xml.findAll('import'):
 			test = dep['addon']
 			try:
-				if dep['optional'].lower() == 'true': 
-					if kodi.get_setting('install_optional') == 'false': 
+				if dep['optional'].lower() == 'true':
+					if kodi.get_setting('install_optional') == 'false':
 						continue
 					elif kodi.get_setting('prompt_optional') == "true":
 						c = kodi.dialog_confirm("Install Optional Dependency", dep['name'], dep['addon'])
@@ -174,12 +174,12 @@ class GitHub_Installer():
 				kodi.log('Dependency is already installed: %s' % test)
 				continue
 			self.required_addons += [test]
-			if test not in self.available_addons: 
+			if test not in self.available_addons:
 				self.unmet_addons += [test]
 			else:
 				self.sources[test] = {"type": SOURCES.DEFAULT, "url": self.source_table[test]}
 				kodi.log("%s dependency met in %s" % (test, self.source_table[test]))
-		
+
 		def user_resolver(user, unmet):
 			dep_url, dep_filename, dep_full_name, version = github.find_zip(user, unmet)
 			if dep_url:
@@ -190,7 +190,7 @@ class GitHub_Installer():
 				kodi.log("%s dependency met in %s" % (unmet, dep_url))
 				return True
 			return False
-		
+
 		def	github_resolver(unmet):
 			results = github.web_search(unmet)
 			c = kodi.dialog_select("GitHub Search Results for %s" % unmet, [r['full_name'] for r in results['items']])
@@ -202,26 +202,26 @@ class GitHub_Installer():
 				self.sources[unmet] = {"type": SOURCES.REPO, "url": dep_url, "user": user, "repo": repo, "version": ""}
 				kodi.log("%s dependency met in %s" % (unmet, dep_url))
 				self.install_addon(unmet, dep_url, dep['full_name'], master=True)
-				
+
 				return True
-			return False	
-		
+			return False
+
 		for unmet in self.unmet_addons:
 			# Now attempt to locate dependencies from available sources
 			# The addons that can be found in any enabled repos will be installed at the end.
-			
+
 			# check if this exists in users root repo
 			if kodi.get_setting('source_user') == 'true':
 				if user_resolver(user, unmet): continue
-			
+
 			# check if this exists in tva root repo
 			if kodi.get_setting('source_tva') == 'true':
 				if user_resolver(tva_user, unmet): continue
-			
+
 			# check if this exists on github
 			if kodi.get_setting('source_github') == 'true':
 				if github_resolver(unmet): continue
-			
+
 		self.unmet_addons = list(set(self.unmet_addons) - set(self.met_addons))
 		if len(self.unmet_addons):
 			self.install_error = True
@@ -233,7 +233,7 @@ class GitHub_Installer():
 			inserts = [(a, ) for a in self.unmet_addons]
 			DB.execute_many("INSERT INTO failed_depends(addon_id) VALUES(?)", inserts)
 			DB.commit()
-		self.completed.append(addon_id)	
+		self.completed.append(addon_id)
 
 	def install_addon(self, addon_id, url, full_name, master):
 		self.required_addons += [addon_id]
@@ -255,7 +255,7 @@ class GitHub_Installer():
 			self.save_source(addon_id, source)
 			self.completed.append(addon_id)
 			self.installed_list.append(addon_id)
-	
+
 	def save_source(self, addon_id, source):
 		DB.execute("REPLACE INTO install_history(addon_id, source) VALUES(?,?)", [addon_id, json.dumps(source)])
 		DB.commit()

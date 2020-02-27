@@ -31,6 +31,6 @@ for name in __github__:
 	else:
 		names = [x for x in mod.__dict__ if not x.startswith("_")]
 	globals().update({k: getattr(mod, k) for k in names})
-	
+
 from commoncore import kodi
 from commoncore.dispatcher import dispatcher
